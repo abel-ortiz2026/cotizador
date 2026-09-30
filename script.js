@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL de la hoja publicada en CSV
+    // =========================================================================
+    // URL DE TU HOJA GOOGLE SHEETS PUBLICADA EN CSV
+    // =========================================================================
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQm8TjsEN4AnRugDL5CjL0-KLcRQiAyTvkSuzofhZz8hEuReFhZG_IAVNYOMojcrQ/pub?gid=679410401&single=true&output=csv';
 
     // Elementos DOM
@@ -20,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPdfModal = document.getElementById('btn-pdf-modal');
     const btnPdfMain = document.getElementById('btn-pdf-main');
 
-    // Base de datos integrada de respaldo
+    // Base de datos de respaldo (solo vehículos reales)
     let vehiculosData = {
         "AUTOMÓVIL": {
             "K3 SEDAN": {
@@ -65,10 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             "EV3 ELECTRICO": {
                 "EX": { precio: 689700, enganches: [186645.00, 253282.00, 319919.00] },
-                "SXL": { precio: 207156.00, enganches: [207156.00, 280952.00, 355096.00] }
+                "SXL": { precio: 767400, enganches: [207156.00, 280952.00, 355096.00] }
             }
-        },
-        "MOTO": {}
+        }
     };
 
     const formatearMoneda = (monto) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(monto);
@@ -78,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return (montoFinanciar * tasaMensual) / (1 - Math.pow(1 + tasaMensual, -plazoMeses));
     };
 
-    // Parser CSV que vincula las unidades correctamente
+    // Parser CSV 100% dinámico
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
         const data = {};
@@ -127,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        return Object.keys(data).length > 0 ? data : null;
+        return data;
     };
 
     const cargarDatos = async () => {
@@ -136,9 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const text = await response.text();
                 const parsed = parseCSV(text);
-                if (parsed) {
-                    // Combinar datos remotos con la base local para no dejar nada vacío
-                    vehiculosData = { ...vehiculosData, ...parsed };
+                if (parsed && Object.keys(parsed).length > 0) {
+                    vehiculosData = parsed;
                 }
             }
         } catch (err) {
@@ -282,13 +282,15 @@ document.addEventListener('DOMContentLoaded', () => {
         actualizarCalculos();
     };
 
-    // Eventos
+    // Eventos de selección
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
-    // Impresión y PDF
+    // =========================================================================
+    // IMPRESIÓN / GENERACIÓN DE PDF
+    // =========================================================================
     const ImprimirCotizacion = () => {
         const pdfDateEl = document.getElementById('pdf-date');
         if (pdfDateEl) {
@@ -322,10 +324,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Eventos de Botones PDF
     if (btnPdfMain) btnPdfMain.addEventListener('click', ImprimirCotizacion);
     if (btnPdfModal) btnPdfModal.addEventListener('click', ImprimirCotizacion);
 
-    // Modal
+    // =========================================================================
+    // EVENTOS DEL MODAL DE CONTACTO
+    // =========================================================================
     if (btnContact && modal) {
         btnContact.addEventListener('click', (e) => {
             e.preventDefault();
