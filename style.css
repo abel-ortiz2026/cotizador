@@ -530,3 +530,70 @@ body {
 .summary-box p {
     margin: 5px 0;
 }
+/* =========================================================================
+   CONFIGURACIÓN DE IMPRESIÓN (PDF EXACTO DE 1 HOJA)
+   ========================================================================= */
+@media print {
+    /* Forzar tamaño de página A4/Carta sin hojas extras */
+    @page {
+        size: letter portrait;
+        margin: 10mm;
+    }
+
+    /* Ocultar absolutamente todo excepto la plantilla del PDF */
+    body * {
+        visibility: hidden !important;
+    }
+
+    /* Ocultar la app completa y el modal para evitar saltos de página */
+    .app-wrapper,
+    .modal-overlay,
+    header,
+    footer {
+        display: none !important;
+    }
+
+    /* Hacer visible únicamente la plantilla de PDF y forzar su posición */
+    #pdf-template-container,
+    #pdf-template-container * {
+        visibility: visible !important;
+    }
+
+    #pdf-template-container {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        page-break-after: avoid !important;
+        page-break-before: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    /* Ajustar tamaños internos para asegurar que entre en 1 hoja */
+    .pdf-header {
+        margin-bottom: 15px !important;
+    }
+
+    .pdf-table {
+        width: 100% !important;
+        margin-bottom: 15px !important;
+        font-size: 13px !important;
+    }
+
+    .pdf-section-title {
+        font-size: 15px !important;
+        margin-top: 15px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .pdf-footer {
+        margin-top: 20px !important;
+        font-size: 10px !important;
+    }
+}

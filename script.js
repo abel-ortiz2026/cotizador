@@ -1,168 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // =========================================================================
-    // BASE DE DATOS COMPLETA DESDE EXCEL DE GOOGLE SHEETS
-    // =========================================================================
-    const vehiculosData = {
-        "AUTOMÓVIL": {
-            "K3 SEDAN": {
-                "L TM": {
-                    precio: 304900,
-                    enganches: [68491.66, 82516.60, 111955.85]
-                },
-                "LX TM": {
-                    precio: 358600,
-                    enganches: [60457.12, 80457.12, 100457.12]
-                },
-                "LX TA": {
-                    precio: 372600,
-                    enganches: [75000.00, 95000.00, 115000.00]
-                },
-                "EX TA": {
-                    precio: 400300,
-                    enganches: [80000.00, 100000.00, 120000.00]
-                },
-                "EXPACK TA": {
-                    precio: 435900,
-                    enganches: [87000.00, 110000.00, 130000.00]
-                }
-            },
-            "K3 HATCHBACK": {
-                "LX TM": {
-                    precio: 358600,
-                    enganches: [80000.00, 100000.00, 120000.00]
-                },
-                "EX TA": {
-                    precio: 400300,
-                    enganches: [90000.00, 110000.00, 130000.00]
-                },
-                "EXPACK TA": {
-                    precio: 435900,
-                    enganches: [98000.00, 120000.00, 140000.00]
-                },
-                "GTLINE TA": {
-                    precio: 475600,
-                    enganches: [105000.00, 130000.00, 150000.00]
-                }
-            },
-            "K4 SEDAN": {
-                "LX TM": {
-                    precio: 398400,
-                    enganches: [89000.00, 110000.00, 130000.00]
-                },
-                "LX TA": {
-                    precio: 415000,
-                    enganches: [93000.00, 115000.00, 135000.00]
-                },
-                "EX TA": {
-                    precio: 445000,
-                    enganches: [100000.00, 125000.00, 145000.00]
-                },
-                "GTLINE TA": {
-                    precio: 485000,
-                    enganches: [110000.00, 135000.00, 155000.00]
-                }
-            }
-        },
-        "SUV": {
-            "SONET": {
-                "LX TM": {
-                    precio: 398400,
-                    enganches: [86356.18, 100000.00, 120000.00]
-                },
-                "LX TA": {
-                    precio: 418400,
-                    enganches: [92000.00, 110000.00, 130000.00]
-                },
-                "EX TA": {
-                    precio: 448400,
-                    enganches: [99000.00, 120000.00, 140000.00]
-                },
-                "SX TA": {
-                    precio: 488400,
-                    enganches: [108000.00, 130000.00, 150000.00]
-                }
-            },
-            "SELTOS": {
-                "LX": {
-                    precio: 449900,
-                    enganches: [99000.00, 120000.00, 140000.00]
-                },
-                "EX": {
-                    precio: 489900,
-                    enganches: [108000.00, 130000.00, 150000.00]
-                },
-                "EXPACK": {
-                    precio: 529900,
-                    enganches: [116000.00, 140000.00, 160000.00]
-                },
-                "SX": {
-                    precio: 569900,
-                    enganches: [125000.00, 150000.00, 170000.00]
-                }
-            },
-            "SPORTAGE": {
-                "EX TA": {
-                    precio: 594900,
-                    enganches: [130000.00, 155000.00, 180000.00]
-                },
-                "EXPACK TA": {
-                    precio: 644900,
-                    enganches: [142000.00, 170000.00, 195000.00]
-                },
-                "SX TURBO": {
-                    precio: 694900,
-                    enganches: [153000.00, 180000.00, 210000.00]
-                },
-                "SXL": {
-                    precio: 734900,
-                    enganches: [162000.00, 190000.00, 220000.00]
-                }
-            },
-            "SORENTO": {
-                "EX TA": {
-                    precio: 789900,
-                    enganches: [174000.00, 200000.00, 230000.00]
-                },
-                "EXPACK": {
-                    precio: 849900,
-                    enganches: [187000.00, 215000.00, 250000.00]
-                },
-                "SXL": {
-                    precio: 909900,
-                    enganches: [200000.00, 230000.00, 270000.00]
-                }
-            }
-        },
-        "HÍBRIDOS Y ELÉCTRICOS": {
-            "NIRO": {
-                "EX": {
-                    precio: 689700,
-                    enganches: [186645.07, 253281.82, 319918.56]
-                }
-            },
-            "SELTOS HIBRIDA": {
-                "EX HEV": {
-                    precio: 549900,
-                    enganches: [121000.00, 145000.00, 170000.00]
-                }
-            },
-            "SPORTAGE HEV": {
-                "SXL HEV": {
-                    precio: 814900,
-                    enganches: [180000.00, 210000.00, 250000.00]
-                }
-            },
-            "EV3": {
-                "GT LINE": {
-                    precio: 799900,
-                    enganches: [175000.00, 205000.00, 240000.00]
-                }
-            }
-        }
-    };
+    // URL del Google Sheet CSV
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQm8TjsEN4AnRugDL5CjL0-KLcRQiAyTvkSuzofhZz8hEuReFhZG_IAVNYOMojcrQ/pub?gid=679410401&single=true&output=csv';
 
-    // Referencias DOM
+    // Elementos DOM principales
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
     const selectVersion = document.getElementById('select-version');
@@ -170,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const precioListaEl = document.getElementById('precio-lista');
     const mesRows = document.querySelectorAll('.mes-row strong');
 
-    // Elementos del Modal
+    // Modal
     const btnContact = document.getElementById('btn-contact');
     const modal = document.getElementById('contact-modal');
     const btnClose = document.getElementById('close-modal');
@@ -179,16 +20,132 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPdfModal = document.getElementById('btn-pdf-modal');
     const btnPdfMain = document.getElementById('btn-pdf-main');
 
-    // Formateador de moneda
+    // Base de datos completa integrada (Respaldo garantizado)
+    let vehiculosData = {
+        "AUTOMÓVIL": {
+            "K3 SEDAN": {
+                "L TM": { precio: 304900, enganches: [68491.66, 82516.60, 111955.85] },
+                "LX TM": { precio: 358600, enganches: [60457.12, 74439.60, 110323.00] },
+                "L TA": { precio: 335500, enganches: [55322.20, 70006.90, 102491.00] },
+                "LX TA": { precio: 372600, enganches: [63626.80, 79111.60, 111956.00] },
+                "EX TA": { precio: 400300, enganches: [69827.80, 85909.50, 124585.00] },
+                "EXPACK": { precio: 435900, enganches: [77796.10, 94464.10, 136762.00] }
+            },
+            "K4 SEDAN": {
+                "LX TM": { precio: 431500, enganches: [113519.00, 155209.00, 196900.00] },
+                "LX TA": { precio: 445500, enganches: [116953.00, 159996.00, 203039.00] },
+                "EX TA": { precio: 489400, enganches: [127722.00, 175006.00, 222291.00] },
+                "GT LINE": { precio: 526700, enganches: [136872.00, 187760.00, 238212.00] },
+                "GT LINE TURBO": { precio: 576600, enganches: [149113.00, 204822.00, 250498.00] }
+            }
+        },
+        "SUV": {
+            "SONET": {
+                "LX TM": { precio: 398400, enganches: [86356.20, 124848.00, 183341.00] },
+                "LX TA": { precio: 411900, enganches: [89700.10, 129497.00, 169293.00] },
+                "EX TA": { precio: 433000, enganches: [94926.70, 136762.00, 178597.00] },
+                "SX TA": { precio: 475900, enganches: [105553.00, 151553.00, 197514.00] }
+            },
+            "SELTOS": {
+                "LX TA": { precio: 499900, enganches: [131500.00, 179989.00, 234629.00] },
+                "EX TA": { precio: 529900, enganches: [139063.00, 190270.00, 241477.00] },
+                "EXPACK TA": { precio: 554900, enganches: [145216.00, 199321.00, 252461.00] },
+                "SX TA": { precio: 619900, enganches: [161213.00, 220120.00, 280013.00] }
+            },
+            "SPORTAGE": {
+                "EX TA": { precio: 647900, enganches: [117291.00, 179889.00, 242487.00] },
+                "EXPACK TA": { precio: 706900, enganches: [131826.00, 200125.00, 268423.00] },
+                "SXL TA": { precio: 766900, enganches: [146608.00, 220703.00, 294799.00] }
+            }
+        },
+        "HÍBRIDOS Y ELÉCTRICOS": {
+            "SPORTAGE HEV": {
+                "EXPACK": { precio: 799900, enganches: [154738.00, 282022.00, 309306.00] },
+                "X LINE": { precio: 893200, enganches: [177724.00, 264022.00, 350320.00] }
+            },
+            "EV3 ELECTRICO": {
+                "EX": { precio: 689700, enganches: [186645.00, 253282.00, 319919.00] },
+                "SXL": { precio: 767400, enganches: [207156.00, 280952.00, 355096.00] }
+            }
+        }
+    };
+
     const formatearMoneda = (monto) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(monto);
 
-    // Calcular Mensualidad con tasa fija 12.99%
     const calcularMensualidad = (montoFinanciar, plazoMeses, tasaAnual = 0.1299) => {
         const tasaMensual = tasaAnual / 12;
         return (montoFinanciar * tasaMensual) / (1 - Math.pow(1 + tasaMensual, -plazoMeses));
     };
 
-    // Actualizar Resumen en Vivo dentro del Modal
+    // Parser CSV seguro con acumulación de campos nulos
+    const parseCSV = (csvText) => {
+        const lines = csvText.split(/\r\n|\n/);
+        const data = {};
+
+        let currentUnidad = "";
+        let currentVersion = "";
+        let currentPrecio = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+
+            const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"\vert{}"$/g, ''));
+            if (cols.length < 7) continue;
+
+            const unidadVal = cols[0] ? cols[0].toUpperCase() : "";
+            const versionVal = cols[1] ? cols[1].toUpperCase() : "";
+            const engancheVal = cols[3] ? parseFloat(cols[3].replace(/[^0-9.-]+/g, '')) : 0;
+            const precioVal = cols[6] ? parseFloat(cols[6].replace(/[^0-9.-]+/g, '')) : 0;
+
+            if (unidadVal) currentUnidad = unidadVal;
+            if (versionVal) currentVersion = versionVal;
+            if (precioVal > 0) currentPrecio = precioVal;
+
+            if (!currentUnidad || !currentVersion || currentPrecio === 0 || engancheVal === 0) continue;
+
+            let tipo = "AUTOMÓVIL";
+            if (["SONET", "SELTOS", "SPORTAGE", "SORENTO", "TELLURIDE"].includes(currentUnidad)) {
+                tipo = "SUV";
+            } else if (["NIRO", "SELTOS HIBRIDA", "SPORTAGE HEV", "EV3 ELECTRICO", "EV3"].includes(currentUnidad)) {
+                tipo = "HÍBRIDOS Y ELÉCTRICOS";
+            }
+
+            if (!data[tipo]) data[tipo] = {};
+            if (!data[tipo][currentUnidad]) data[tipo][currentUnidad] = {};
+            if (!data[tipo][currentUnidad][currentVersion]) {
+                data[tipo][currentUnidad][currentVersion] = {
+                    precio: currentPrecio,
+                    enganches: []
+                };
+            }
+
+            if (!data[tipo][currentUnidad][currentVersion].enganches.includes(engancheVal)) {
+                data[tipo][currentUnidad][currentVersion].enganches.push(engancheVal);
+            }
+        }
+
+        return Object.keys(data).length > 0 ? data : null;
+    };
+
+    const cargarDatos = async () => {
+        try {
+            const response = await fetch(SHEET_CSV_URL);
+            if (response.ok) {
+                const text = await response.text();
+                const parsed = parseCSV(text);
+                if (parsed) {
+                    vehiculosData = parsed;
+                    console.log("✅ Datos sincronizados desde Google Sheets.");
+                }
+            }
+        } catch (err) {
+            console.warn("⚠️ Ejecutando en modo offline/local con base integrada:", err);
+        }
+
+        // Se ejecuta siempre, sin importar si falló la red
+        poblarSelectTipos();
+    };
+
     const actualizarResumenModal = (unidad, version, enganche, mensualidad48) => {
         const sumUnidad = document.getElementById('summary-unidad');
         const sumVersion = document.getElementById('summary-version');
@@ -201,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sumMensualidad) sumMensualidad.innerText = formatearMoneda(mensualidad48);
     };
 
-    // Lógica Principal de Cálculo
     const actualizarCalculos = () => {
         if (!selectTipo || !selectUnidad || !selectVersion || !selectEnganche) return;
 
@@ -230,7 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Actualizar Resumen en Modal y Plantilla de PDF
         actualizarResumenModal(unidad, version, engancheVal, mensualidad48);
         actualizarPlantillaPDF(unidad, version, precio, engancheVal, montoFinanciar);
     };
@@ -258,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Llenar Selects en Cascada
     const poblarSelectTipos = () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
@@ -325,13 +279,11 @@ document.addEventListener('DOMContentLoaded', () => {
         actualizarCalculos();
     };
 
-    // Escuchar cambios
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
-    // Impresión PDF
     const ImprimirCotizacion = () => {
         const pdfDateEl = document.getElementById('pdf-date');
         if (pdfDateEl) {
@@ -344,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPdfMain) btnPdfMain.addEventListener('click', ImprimirCotizacion);
     if (btnPdfModal) btnPdfModal.addEventListener('click', ImprimirCotizacion);
 
-    // Modal de Contacto
     if (btnContact && modal) {
         btnContact.addEventListener('click', (e) => {
             e.preventDefault();
@@ -366,7 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Armar mensaje formateado para enviar al Asesor
     const getMensajeContacto = () => {
         const inputNombre = document.getElementById('user-name');
         const inputPhone = document.getElementById('user-phone');
@@ -402,6 +352,6 @@ Estoy interesado en la cotización del KIA ${unidad} (${version}).
         });
     }
 
-    // Inicializar
-    poblarSelectTipos();
+    // Inicializar de forma segura
+    cargarDatos();
 });
