@@ -1,9 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL del Google Sheet CSV
+    // =========================================================================
+    // URL DE TU GOOGLE SHEET PUBLICADO
+    // =========================================================================
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQm8TjsEN4AnRugDL5CjL0-KLcRQiAyTvkSuzofhZz8hEuReFhZG_IAVNYOMojcrQ/pub?gid=679410401&single=true&output=csv';
 
-    // Elementos DOM principales
+    // Elementos DOM
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
     const selectVersion = document.getElementById('select-version');
@@ -11,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const precioListaEl = document.getElementById('precio-lista');
     const mesRows = document.querySelectorAll('.mes-row strong');
 
-    // Modal
+    // Botones e Interfaz
     const btnContact = document.getElementById('btn-contact');
     const modal = document.getElementById('contact-modal');
     const btnClose = document.getElementById('close-modal');
@@ -20,52 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPdfModal = document.getElementById('btn-pdf-modal');
     const btnPdfMain = document.getElementById('btn-pdf-main');
 
-    // Base de datos completa integrada (Respaldo garantizado)
+    // Estructura de respaldo
     let vehiculosData = {
         "AUTOMÓVIL": {
             "K3 SEDAN": {
                 "L TM": { precio: 304900, enganches: [68491.66, 82516.60, 111955.85] },
-                "LX TM": { precio: 358600, enganches: [60457.12, 74439.60, 110323.00] },
-                "L TA": { precio: 335500, enganches: [55322.20, 70006.90, 102491.00] },
-                "LX TA": { precio: 372600, enganches: [63626.80, 79111.60, 111956.00] },
-                "EX TA": { precio: 400300, enganches: [69827.80, 85909.50, 124585.00] },
-                "EXPACK": { precio: 435900, enganches: [77796.10, 94464.10, 136762.00] }
-            },
-            "K4 SEDAN": {
-                "LX TM": { precio: 431500, enganches: [113519.00, 155209.00, 196900.00] },
-                "LX TA": { precio: 445500, enganches: [116953.00, 159996.00, 203039.00] },
-                "EX TA": { precio: 489400, enganches: [127722.00, 175006.00, 222291.00] },
-                "GT LINE": { precio: 526700, enganches: [136872.00, 187760.00, 238212.00] },
-                "GT LINE TURBO": { precio: 576600, enganches: [149113.00, 204822.00, 250498.00] }
+                "LX TM": { precio: 358600, enganches: [60457.12, 74439.60, 110323.00] }
             }
         },
         "SUV": {
             "SONET": {
-                "LX TM": { precio: 398400, enganches: [86356.20, 124848.00, 183341.00] },
-                "LX TA": { precio: 411900, enganches: [89700.10, 129497.00, 169293.00] },
-                "EX TA": { precio: 433000, enganches: [94926.70, 136762.00, 178597.00] },
-                "SX TA": { precio: 475900, enganches: [105553.00, 151553.00, 197514.00] }
-            },
-            "SELTOS": {
-                "LX TA": { precio: 499900, enganches: [131500.00, 179989.00, 234629.00] },
-                "EX TA": { precio: 529900, enganches: [139063.00, 190270.00, 241477.00] },
-                "EXPACK TA": { precio: 554900, enganches: [145216.00, 199321.00, 252461.00] },
-                "SX TA": { precio: 619900, enganches: [161213.00, 220120.00, 280013.00] }
-            },
-            "SPORTAGE": {
-                "EX TA": { precio: 647900, enganches: [117291.00, 179889.00, 242487.00] },
-                "EXPACK TA": { precio: 706900, enganches: [131826.00, 200125.00, 268423.00] },
-                "SXL TA": { precio: 766900, enganches: [146608.00, 220703.00, 294799.00] }
-            }
-        },
-        "HÍBRIDOS Y ELÉCTRICOS": {
-            "SPORTAGE HEV": {
-                "EXPACK": { precio: 799900, enganches: [154738.00, 282022.00, 309306.00] },
-                "X LINE": { precio: 893200, enganches: [177724.00, 264022.00, 350320.00] }
-            },
-            "EV3 ELECTRICO": {
-                "EX": { precio: 689700, enganches: [186645.00, 253282.00, 319919.00] },
-                "SXL": { precio: 767400, enganches: [207156.00, 280952.00, 355096.00] }
+                "LX TM": { precio: 398400, enganches: [86356.20, 124848.00, 183341.00] }
             }
         }
     };
@@ -77,10 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return (montoFinanciar * tasaMensual) / (1 - Math.pow(1 + tasaMensual, -plazoMeses));
     };
 
-    // Parser CSV seguro con acumulación de campos nulos
+    // Parser CSV seguro
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
-        const data = {};
+        const data = {
+            "AUTOMÓVIL": {},
+            "SUV": {},
+            "HÍBRIDOS Y ELÉCTRICOS": {},
+            "MOTO": {}
+        };
 
         let currentUnidad = "";
         let currentVersion = "";
@@ -108,6 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 tipo = "SUV";
             } else if (["NIRO", "SELTOS HIBRIDA", "SPORTAGE HEV", "EV3 ELECTRICO", "EV3"].includes(currentUnidad)) {
                 tipo = "HÍBRIDOS Y ELÉCTRICOS";
+            } else if (["MOTO", "SCOOTER"].some(m => currentUnidad.includes(m))) {
+                tipo = "MOTO";
             }
 
             if (!data[tipo]) data[tipo] = {};
@@ -124,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        return Object.keys(data).length > 0 ? data : null;
+        return data;
     };
 
     const cargarDatos = async () => {
@@ -135,14 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parsed = parseCSV(text);
                 if (parsed) {
                     vehiculosData = parsed;
-                    console.log("✅ Datos sincronizados desde Google Sheets.");
                 }
             }
         } catch (err) {
-            console.warn("⚠️ Ejecutando en modo offline/local con base integrada:", err);
+            console.warn("Cargando base de datos interna...");
         }
 
-        // Se ejecuta siempre, sin importar si falló la red
         poblarSelectTipos();
     };
 
@@ -279,23 +251,55 @@ document.addEventListener('DOMContentLoaded', () => {
         actualizarCalculos();
     };
 
+    // Eventos de selección
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
+    // =========================================================================
+    // IMPRESIÓN / GENERACIÓN DE PDF
+    // =========================================================================
     const ImprimirCotizacion = () => {
         const pdfDateEl = document.getElementById('pdf-date');
         if (pdfDateEl) {
             pdfDateEl.innerText = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
         }
+
         if (modal) modal.classList.remove('active');
-        window.print();
+
+        const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (esMovil && typeof html2pdf !== 'undefined') {
+            const elementoPDF = document.getElementById('pdf-template-container');
+            const unidad = selectUnidad ? selectUnidad.value : 'Cotizacion';
+            const version = selectVersion ? selectVersion.value : 'KIA';
+
+            const opciones = {
+                margin:       10,
+                filename:     `Cotizacion_KIA_${unidad}_${version}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            };
+
+            elementoPDF.style.display = 'block';
+
+            html2pdf().set(opciones).from(elementoPDF).save().then(() => {
+                elementoPDF.style.display = '';
+            });
+        } else {
+            window.print();
+        }
     };
 
+    // Eventos de Botones PDF
     if (btnPdfMain) btnPdfMain.addEventListener('click', ImprimirCotizacion);
     if (btnPdfModal) btnPdfModal.addEventListener('click', ImprimirCotizacion);
 
+    // =========================================================================
+    // EVENTOS DEL MODAL DE CONTACTO
+    // =========================================================================
     if (btnContact && modal) {
         btnContact.addEventListener('click', (e) => {
             e.preventDefault();
@@ -352,6 +356,6 @@ Estoy interesado en la cotización del KIA ${unidad} (${version}).
         });
     }
 
-    // Inicializar de forma segura
+    // Inicialización
     cargarDatos();
 });
