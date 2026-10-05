@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL de tu Google Sheets publicado en CSV
+    // URL de Google Sheets en formato CSV
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
 
     // Elementos del DOM
@@ -22,27 +22,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let vehiculosData = {};
 
-    const formatearMoneda = (monto) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(monto || 0);
-
-    const calcularMensualidad = (montoFinanciar, plazoMeses, tasaAnual = 0.1299) => {
-        if (!montoFinanciar || montoFinanciar <= 0) return 0;
-        const tasaMensual = tasaAnual / 12;
-        return (montoFinanciar * tasaMensual) / (1 - Math.pow(1 + tasaMensual, -plazoMeses));
+    const formatearMoneda = (monto) => {
+        if (typeof monto === 'string' && monto.includes('$')) return monto;
+        const val = parseFloat(monto) || 0;
+        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
     };
 
-    // Parser CSV Robusto con Detección Dinámica de Columnas
+    // Parser CSV que mapea cada fila exacta (Plazo -> Mensualidad)
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
         const data = {};
 
-        let idxUnidad = 2;   // Col C por defecto
-        let idxVersion = 3;  // Col D por defecto
-        let idxEnganche = 5; // Col F por defecto
-        let idxPrecio = 8;   // Col I por defecto
+        // Índices basados en la estructura del Excel:
+        // C: COTIZACIONES (Unidad) | D: VERSION | F: ENGANCHE | G: PLAZO | H: MENSUALIDAD | I: PRECIO
+        let idxUnidad = 2;
+        let idxVersion = 3;
+        let idxEnganche = 5;
+        let idxPlazo = 6;
+        let idxMensualidad = 7;
+        let idxPrecio = 8;
 
         let currentUnidad = "";
         let currentVersion = "";
-        let currentPrecio = 0;
+        let currentPrecio = "";
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -50,39 +52,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"\vert{}"$/g, ''));
 
-            // Buscar la fila de encabezados para mapear índices exactos
+            // Encabezados
             const lineUpper = line.toUpperCase();
-            if (lineUpper.includes("COTIZACIONES") && lineUpper.includes("PRECIO")) {
+            if (lineUpper.includes("COTIZACIONES") && lineUpper.includes("MENSUALIDAD")) {
                 cols.forEach((colHeader, idx) => {
                     const h = colHeader.toUpperCase();
                     if (h.includes("COTIZACION") || h.includes("UNIDAD")) idxUnidad = idx;
                     if (h.includes("VERSION")) idxVersion = idx;
                     if (h.includes("ENGANCHE")) idxEnganche = idx;
+                    if (h.includes("PLAZO")) idxPlazo = idx;
+                    if (h.includes("MENSUALIDAD")) idxMensualidad = idx;
                     if (h.includes("PRECIO")) idxPrecio = idx;
                 });
-                continue; // Saltar fila de encabezados
+                continue;
             }
 
             const unidadVal = cols[idxUnidad] ? cols[idxUnidad].toUpperCase() : "";
             const versionVal = cols[idxVersion] ? cols[idxVersion].toUpperCase() : "";
-            const engancheRaw = cols[idxEnganche] ? cols[idxEnganche].replace(/[^0-9.-]+/g, '') : "";
-            const precioRaw = cols[idxPrecio] ? cols[idxPrecio].replace(/[^0-9.-]+/g, '') : "";
-
+            const precioRaw = cols[idxPrecio] ? cols[idxPrecio].trim() : "";
+            
             if (unidadVal && !unidadVal.includes("COTIZACION")) currentUnidad = unidadVal;
             if (versionVal && !versionVal.includes("VERSION")) currentVersion = versionVal;
+            if (precioRaw && precioRaw !== "") currentPrecio = precioRaw;
 
-            if (precioRaw && !isNaN(parseFloat(precioRaw))) {
-                const p = parseFloat(precioRaw);
-                if (p > 0) currentPrecio = p;
-            }
+            const engancheRaw = cols[idxEnganche] ? cols[idxEnganche].trim() : "";
+            const plazoRaw = cols[idxPlazo] ? cols[idxPlazo].trim() : "";
+            const mensualidadRaw = cols[idxMensualidad] ? cols[idxMensualidad].trim() : "";
 
-            const engancheVal = parseFloat(engancheRaw);
-
-            if (!currentUnidad || !currentVersion || currentPrecio === 0 || isNaN(engancheVal) || engancheVal === 0) {
+            if (!currentUnidad || !currentVersion || !engancheRaw || !plazoRaw || !mensualidadRaw) {
                 continue;
             }
 
-            // Categorías
+            // Categorías por Tipo
             let tipo = "AUTOMÓVIL";
             if (["SONET", "SELTOS", "SPORTAGE", "SORENTO", "TELLURIDE"].includes(currentUnidad)) {
                 tipo = "SUV";
@@ -95,16 +96,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data[tipo][currentUnidad][currentVersion]) {
                 data[tipo][currentUnidad][currentVersion] = {
                     precio: currentPrecio,
-                    enganches: []
+                    enganchesMap: {}
                 };
             }
 
-            // Actualizar el precio con el valor más reciente de la hoja
-            data[tipo][currentUnidad][currentVersion].precio = currentPrecio;
-
-            if (!data[tipo][currentUnidad][currentVersion].enganches.includes(engancheVal)) {
-                data[tipo][currentUnidad][currentVersion].enganches.push(engancheVal);
+            if (currentPrecio) {
+                data[tipo][currentUnidad][currentVersion].precio = currentPrecio;
             }
+
+            const engMap = data[tipo][currentUnidad][currentVersion].enganchesMap;
+            if (!engMap[engancheRaw]) {
+                engMap[engancheRaw] = {};
+            }
+
+            // Mapea directamente la mensualidad original del Excel por plazo (72, 60, 48, 36)
+            engMap[engancheRaw][plazoRaw] = mensualidadRaw;
         }
 
         return data;
@@ -112,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cargarDatos = async () => {
         try {
-            // Evita caché de navegador/GitHub Pages agregando timestamp
             const urlAntiCache = `${SHEET_CSV_URL}&_v=${Date.now()}`;
             const response = await fetch(urlAntiCache);
             if (response.ok) {
@@ -182,11 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
         selectEnganche.innerHTML = '';
 
         const info = vehiculosData[tipoSeleccionado]?.[unidadSeleccionada]?.[versionSeleccionada];
-        if (info && info.enganches) {
-            info.enganches.forEach(monto => {
+        if (info && info.enganchesMap) {
+            Object.keys(info.enganchesMap).forEach(montoEnganche => {
                 const opt = document.createElement('option');
-                opt.value = monto;
-                opt.textContent = formatearMoneda(monto);
+                opt.value = montoEnganche;
+                opt.textContent = montoEnganche;
                 selectEnganche.appendChild(opt);
             });
         }
@@ -201,8 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (sumUnidad) sumUnidad.innerText = unidad;
         if (sumVersion) sumVersion.innerText = version;
-        if (sumEnganche) sumEnganche.innerText = formatearMoneda(enganche);
-        if (sumMensualidad) sumMensualidad.innerText = formatearMoneda(mensualidad48);
+        if (sumEnganche) sumEnganche.innerText = enganche;
+        if (sumMensualidad) sumMensualidad.innerText = mensualidad48;
     };
 
     const actualizarCalculos = () => {
@@ -211,56 +216,53 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipo = selectTipo.value;
         const unidad = selectUnidad.value;
         const version = selectVersion.value;
+        const engancheKey = selectEnganche.value;
 
         if (!vehiculosData[tipo]?.[unidad]?.[version]) return;
 
         const info = vehiculosData[tipo][unidad][version];
-        const precio = info.precio;
+        
+        if (precioListaEl) precioListaEl.innerText = info.precio || "$0.00";
 
-        if (precioListaEl) precioListaEl.innerText = formatearMoneda(precio);
+        const plazosMap = info.enganchesMap?.[engancheKey] || {};
+        const plazos = ["72", "60", "48", "36"];
+        let mensualidad48 = "$0.00";
 
-        const engancheVal = parseFloat(selectEnganche.value) || (info.enganches ? info.enganches[0] : 0);
-        const montoFinanciar = precio - engancheVal;
-
-        const plazos = [72, 60, 48, 36];
-        let mensualidad48 = 0;
-
-        plazos.forEach((plazo, index) => {
-            const pago = calcularMensualidad(montoFinanciar, plazo);
-            if (plazo === 48) mensualidad48 = pago;
+        plazos.forEach((plazoKey, index) => {
+            const valorMensualidad = plazosMap[plazoKey] || "$0.00";
+            if (plazoKey === "48") mensualidad48 = valorMensualidad;
             if (mesRows[index]) {
-                mesRows[index].innerText = formatearMoneda(pago);
+                mesRows[index].innerText = valorMensualidad;
             }
         });
 
-        actualizarResumenModal(unidad, version, engancheVal, mensualidad48);
-        actualizarPlantillaPDF(unidad, version, precio, engancheVal, montoFinanciar);
+        actualizarResumenModal(unidad, version, engancheKey, mensualidad48);
+        actualizarPlantillaPDF(unidad, version, info.precio, engancheKey, plazosMap);
     };
 
-    const actualizarPlantillaPDF = (unidad, version, precio, enganche, montoFinanciar) => {
+    const actualizarPlantillaPDF = (unidad, version, precio, enganche, plazosMap) => {
         const pdfTable = document.querySelector('#pdf-template-container .pdf-table');
         if (pdfTable) {
             const tds = pdfTable.querySelectorAll('td.fw-bold');
             if (tds.length >= 4) {
                 tds[0].innerText = unidad;
                 tds[1].innerText = version;
-                tds[2].innerText = formatearMoneda(precio);
-                tds[3].innerText = formatearMoneda(enganche);
+                tds[2].innerText = precio;
+                tds[3].innerText = enganche;
             }
         }
 
         const pdfMesTds = document.querySelectorAll('#pdf-template-container .pdf-table-mensualidades td.fw-bold');
-        const plazos = [72, 60, 48, 36];
+        const plazos = ["72", "60", "48", "36"];
 
-        plazos.forEach((plazo, index) => {
+        plazos.forEach((plazoKey, index) => {
             if (pdfMesTds[index]) {
-                const pago = calcularMensualidad(montoFinanciar, plazo);
-                pdfMesTds[index].innerText = formatearMoneda(pago);
+                pdfMesTds[index].innerText = plazosMap[plazoKey] || "$0.00";
             }
         });
     };
 
-    // Eventos Selects
+    // Eventos
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
@@ -323,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPdfMain) btnPdfMain.addEventListener('click', ImprimirCotizacion);
     if (btnPdfModal) btnPdfModal.addEventListener('click', ImprimirCotizacion);
 
-    // Botones de Contacto
+    // Enlaces Contacto
     const getMensajeContacto = () => {
         const inputNombre = document.getElementById('user-name');
         const inputPhone = document.getElementById('user-phone');
@@ -357,6 +359,6 @@ Estoy interesado en la cotización del KIA ${unidad} (${version}).
         });
     }
 
-    // Iniciar
+    // Inicialización
     cargarDatos();
 });
