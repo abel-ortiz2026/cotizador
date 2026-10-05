@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // URL DE TU HOJA GOOGLE SHEETS PUBLICADA EN CSV
     // =========================================================================
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQm8TjsEN4AnRugDL5CjL0-KLcRQiAyTvkSuzofhZz8hEuReFhZG_IAVNYOMojcrQ/pub?gid=679410401&single=true&output=csv';
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
 
     // Elementos DOM
     const selectTipo = document.getElementById('select-tipo');
@@ -22,64 +22,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPdfModal = document.getElementById('btn-pdf-modal');
     const btnPdfMain = document.getElementById('btn-pdf-main');
 
-    // Base de datos de respaldo (solo vehículos reales)
-    let vehiculosData = {
-        "AUTOMÓVIL": {
-            "K3 SEDAN": {
-                "L TM": { precio: 304900, enganches: [68491.66, 82516.60, 111955.85] },
-                "LX TM": { precio: 358600, enganches: [60457.12, 74439.60, 110323.00] },
-                "L TA": { precio: 335500, enganches: [55322.20, 70006.90, 102491.00] },
-                "LX TA": { precio: 372600, enganches: [63626.80, 79111.60, 111956.00] },
-                "EX TA": { precio: 400300, enganches: [69827.80, 85909.50, 124585.00] },
-                "EXPACK": { precio: 435900, enganches: [77796.10, 94464.10, 136762.00] }
-            },
-            "K4 SEDAN": {
-                "LX TM": { precio: 431500, enganches: [113519.00, 155209.00, 196900.00] },
-                "LX TA": { precio: 445500, enganches: [116953.00, 159996.00, 203039.00] },
-                "EX TA": { precio: 489400, enganches: [127722.00, 175006.00, 222291.00] },
-                "GT LINE": { precio: 526700, enganches: [136872.00, 187760.00, 238212.00] },
-                "GT LINE TURBO": { precio: 576600, enganches: [149113.00, 204822.00, 250498.00] }
-            }
-        },
-        "SUV": {
-            "SONET": {
-                "LX TM": { precio: 398400, enganches: [86356.20, 124848.00, 183341.00] },
-                "LX TA": { precio: 411900, enganches: [89700.10, 129497.00, 169293.00] },
-                "EX TA": { precio: 433000, enganches: [94926.70, 136762.00, 178597.00] },
-                "SX TA": { precio: 475900, enganches: [105553.00, 151553.00, 197514.00] }
-            },
-            "SELTOS": {
-                "LX TA": { precio: 499900, enganches: [131500.00, 179989.00, 234629.00] },
-                "EX TA": { precio: 529900, enganches: [139063.00, 190270.00, 241477.00] },
-                "EXPACK TA": { precio: 554900, enganches: [145216.00, 199321.00, 252461.00] },
-                "SX TA": { precio: 619900, enganches: [161213.00, 220120.00, 280013.00] }
-            },
-            "SPORTAGE": {
-                "EX TA": { precio: 647900, enganches: [117291.00, 179889.00, 242487.00] },
-                "EXPACK TA": { precio: 706900, enganches: [131826.00, 200125.00, 268423.00] },
-                "SXL TA": { precio: 766900, enganches: [146608.00, 220703.00, 294799.00] }
-            }
-        },
-        "HÍBRIDOS Y ELÉCTRICOS": {
-            "SPORTAGE HEV": {
-                "EXPACK": { precio: 799900, enganches: [154738.00, 282022.00, 309306.00] },
-                "X LINE": { precio: 893200, enganches: [177724.00, 264022.00, 350320.00] }
-            },
-            "EV3 ELECTRICO": {
-                "EX": { precio: 689700, enganches: [186645.00, 253282.00, 319919.00] },
-                "SXL": { precio: 767400, enganches: [207156.00, 280952.00, 355096.00] }
-            }
-        }
-    };
+    // Se inicia VACÍO para depender 100% de la hoja de Google Sheets
+    let vehiculosData = {};
 
-    const formatearMoneda = (monto) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(monto);
+    const formatearMoneda = (monto) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(monto || 0);
 
     const calcularMensualidad = (montoFinanciar, plazoMeses, tasaAnual = 0.1299) => {
+        if (!montoFinanciar || montoFinanciar <= 0) return 0;
         const tasaMensual = tasaAnual / 12;
         return (montoFinanciar * tasaMensual) / (1 - Math.pow(1 + tasaMensual, -plazoMeses));
     };
 
-    // Parser CSV 100% dinámico
+    // =========================================================================
+    // PARSER CSV DE GOOGLE SHEETS (Ajustado a la estructura de tu hoja)
+    // =========================================================================
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
         const data = {};
@@ -92,12 +48,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!lines[i].trim()) continue;
 
             const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"\vert{}"$/g, ''));
-            if (cols.length < 7) continue;
 
-            const unidadVal = cols[0] ? cols[0].toUpperCase() : "";
-            const versionVal = cols[1] ? cols[1].toUpperCase() : "";
-            const engancheVal = cols[3] ? parseFloat(cols[3].replace(/[^0-9.-]+/g, '')) : 0;
-            const precioVal = cols[6] ? parseFloat(cols[6].replace(/[^0-9.-]+/g, '')) : 0;
+            // Según tu captura de Google Sheets:
+            // Col C = cols[2] -> Unidad (K3 SEDAN)
+            // Col D = cols[3] -> Version (L TM)
+            // Col F = cols[5] -> Enganche ($63,511.95)
+            // Col I = cols[8] -> Precio ($310,100.00)
+            
+            const unidadVal = cols[2] ? cols[2].toUpperCase() : "";
+            const versionVal = cols[3] ? cols[3].toUpperCase() : "";
+            const engancheVal = cols[5] ? parseFloat(cols[5].replace(/[^0-9.-]+/g, '')) : 0;
+            const precioVal = cols[8] ? parseFloat(cols[8].replace(/[^0-9.-]+/g, '')) : 0;
 
             if (unidadVal) currentUnidad = unidadVal;
             if (versionVal) currentVersion = versionVal;
@@ -108,10 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let tipo = "AUTOMÓVIL";
             if (["SONET", "SELTOS", "SPORTAGE", "SORENTO", "TELLURIDE"].includes(currentUnidad)) {
                 tipo = "SUV";
-            } else if (["NIRO", "SELTOS HIBRIDA", "SPORTAGE HEV", "EV3 ELECTRICO", "EV3"].includes(currentUnidad)) {
+            } else if (["NIRO", "SELTOS HIBRIDA", "SPORTAGE HEV", "EV3 ELECTRICO", "EV3", "EV6"].includes(currentUnidad)) {
                 tipo = "HÍBRIDOS Y ELÉCTRICOS";
-            } else if (["MOTO", "SCOOTER"].some(m => currentUnidad.includes(m))) {
-                tipo = "MOTO";
             }
 
             if (!data[tipo]) data[tipo] = {};
@@ -139,80 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parsed = parseCSV(text);
                 if (parsed && Object.keys(parsed).length > 0) {
                     vehiculosData = parsed;
+                    poblarSelectTipos();
                 }
             }
         } catch (err) {
-            console.warn("Utilizando base interna de datos:", err);
+            console.error("Error cargando Google Sheets. Recuerda probar esto bajo un servidor local (HTTP) o GitHub Pages:", err);
         }
-
-        poblarSelectTipos();
-    };
-
-    const actualizarResumenModal = (unidad, version, enganche, mensualidad48) => {
-        const sumUnidad = document.getElementById('summary-unidad');
-        const sumVersion = document.getElementById('summary-version');
-        const sumEnganche = document.getElementById('summary-enganche');
-        const sumMensualidad = document.getElementById('summary-mensualidad');
-
-        if (sumUnidad) sumUnidad.innerText = unidad;
-        if (sumVersion) sumVersion.innerText = version;
-        if (sumEnganche) sumEnganche.innerText = formatearMoneda(enganche);
-        if (sumMensualidad) sumMensualidad.innerText = formatearMoneda(mensualidad48);
-    };
-
-    const actualizarCalculos = () => {
-        if (!selectTipo || !selectUnidad || !selectVersion || !selectEnganche) return;
-
-        const tipo = selectTipo.value;
-        const unidad = selectUnidad.value;
-        const version = selectVersion.value;
-
-        if (!vehiculosData[tipo] || !vehiculosData[tipo][unidad] || !vehiculosData[tipo][unidad][version]) return;
-
-        const info = vehiculosData[tipo][unidad][version];
-        const precio = info.precio;
-
-        if (precioListaEl) precioListaEl.innerText = formatearMoneda(precio);
-
-        const engancheVal = parseFloat(selectEnganche.value) || (info.enganches ? info.enganches[0] : 0);
-        const montoFinanciar = precio - engancheVal;
-
-        const plazos = [72, 60, 48, 36];
-        let mensualidad48 = 0;
-
-        plazos.forEach((plazo, index) => {
-            const pago = calcularMensualidad(montoFinanciar, plazo);
-            if (plazo === 48) mensualidad48 = pago;
-            if (mesRows[index]) {
-                mesRows[index].innerText = formatearMoneda(pago);
-            }
-        });
-
-        actualizarResumenModal(unidad, version, engancheVal, mensualidad48);
-        actualizarPlantillaPDF(unidad, version, precio, engancheVal, montoFinanciar);
-    };
-
-    const actualizarPlantillaPDF = (unidad, version, precio, enganche, montoFinanciar) => {
-        const pdfTable = document.querySelector('#pdf-template-container .pdf-table');
-        if (pdfTable) {
-            const tds = pdfTable.querySelectorAll('td.fw-bold');
-            if (tds.length >= 4) {
-                tds[0].innerText = unidad;
-                tds[1].innerText = version;
-                tds[2].innerText = formatearMoneda(precio);
-                tds[3].innerText = formatearMoneda(enganche);
-            }
-        }
-
-        const pdfMesTds = document.querySelectorAll('#pdf-template-container .pdf-table-mensualidades td.fw-bold');
-        const plazos = [72, 60, 48, 36];
-
-        plazos.forEach((plazo, index) => {
-            if (pdfMesTds[index]) {
-                const pago = calcularMensualidad(montoFinanciar, plazo);
-                pdfMesTds[index].innerText = formatearMoneda(pago);
-            }
-        });
     };
 
     const poblarSelectTipos = () => {
@@ -282,15 +173,80 @@ document.addEventListener('DOMContentLoaded', () => {
         actualizarCalculos();
     };
 
-    // Eventos de selección
+    const actualizarResumenModal = (unidad, version, enganche, mensualidad48) => {
+        const sumUnidad = document.getElementById('summary-unidad');
+        const sumVersion = document.getElementById('summary-version');
+        const sumEnganche = document.getElementById('summary-enganche');
+        const sumMensualidad = document.getElementById('summary-mensualidad');
+
+        if (sumUnidad) sumUnidad.innerText = unidad;
+        if (sumVersion) sumVersion.innerText = version;
+        if (sumEnganche) sumEnganche.innerText = formatearMoneda(enganche);
+        if (sumMensualidad) sumMensualidad.innerText = formatearMoneda(mensualidad48);
+    };
+
+    const actualizarCalculos = () => {
+        if (!selectTipo || !selectUnidad || !selectVersion || !selectEnganche) return;
+
+        const tipo = selectTipo.value;
+        const unidad = selectUnidad.value;
+        const version = selectVersion.value;
+
+        if (!vehiculosData[tipo] || !vehiculosData[tipo][unidad] || !vehiculosData[tipo][unidad][version]) return;
+
+        const info = vehiculosData[tipo][unidad][version];
+        const precio = info.precio;
+
+        if (precioListaEl) precioListaEl.innerText = formatearMoneda(precio);
+
+        const engancheVal = parseFloat(selectEnganche.value) || (info.enganches ? info.enganches[0] : 0);
+        const montoFinanciar = precio - engancheVal;
+
+        const plazos = [72, 60, 48, 36];
+        let mensualidad48 = 0;
+
+        plazos.forEach((plazo, index) => {
+            const pago = calcularMensualidad(montoFinanciar, plazo);
+            if (plazo === 48) mensualidad48 = pago;
+            if (mesRows[index]) {
+                mesRows[index].innerText = formatearMoneda(pago);
+            }
+        });
+
+        actualizarResumenModal(unidad, version, engancheVal, mensualidad48);
+        actualizarPlantillaPDF(unidad, version, precio, engancheVal, montoFinanciar);
+    };
+
+    const actualizarPlantillaPDF = (unidad, version, precio, enganche, montoFinanciar) => {
+        const pdfTable = document.querySelector('#pdf-template-container .pdf-table');
+        if (pdfTable) {
+            const tds = pdfTable.querySelectorAll('td.fw-bold');
+            if (tds.length >= 4) {
+                tds[0].innerText = unidad;
+                tds[1].innerText = version;
+                tds[2].innerText = formatearMoneda(precio);
+                tds[3].innerText = formatearMoneda(enganche);
+            }
+        }
+
+        const pdfMesTds = document.querySelectorAll('#pdf-template-container .pdf-table-mensualidades td.fw-bold');
+        const plazos = [72, 60, 48, 36];
+
+        plazos.forEach((plazo, index) => {
+            if (pdfMesTds[index]) {
+                const pago = calcularMensualidad(montoFinanciar, plazo);
+                pdfMesTds[index].innerText = formatearMoneda(pago);
+            }
+        });
+    };
+
+    // Eventos
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
-    // =========================================================================
-    // IMPRESIÓN / GENERACIÓN DE PDF
-    // =========================================================================
+    // Impresión / PDF
     const ImprimirCotizacion = () => {
         const pdfDateEl = document.getElementById('pdf-date');
         if (pdfDateEl) {
@@ -324,13 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Eventos de Botones PDF
     if (btnPdfMain) btnPdfMain.addEventListener('click', ImprimirCotizacion);
     if (btnPdfModal) btnPdfModal.addEventListener('click', ImprimirCotizacion);
 
-    // =========================================================================
-    // EVENTOS DEL MODAL DE CONTACTO
-    // =========================================================================
+    // Modal y contacto
     if (btnContact && modal) {
         btnContact.addEventListener('click', (e) => {
             e.preventDefault();
@@ -346,9 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (modal) {
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
+            if (e.target === modal) modal.classList.remove('active');
         });
     }
 
@@ -387,6 +338,6 @@ Estoy interesado en la cotización del KIA ${unidad} (${version}).
         });
     }
 
-    // Inicialización
+    // Iniciar lectura directa de Google Sheets
     cargarDatos();
 });
