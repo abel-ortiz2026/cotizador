@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL de Google Sheets en formato CSV
+    // URL de Google Sheets publicado en CSV
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
 
-    // Elementos del DOM
+    // Elementos DOM
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
     const selectVersion = document.getElementById('select-version');
@@ -22,19 +22,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let vehiculosData = {};
 
-    const formatearMoneda = (monto) => {
-        if (typeof monto === 'string' && monto.includes('$')) return monto;
-        const val = parseFloat(monto) || 0;
-        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
+    // Función para limpiar comillas, espacios y caracteres sobrantes
+    const cleanText = (str) => {
+        if (!str) return "";
+        return str.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
     };
 
-    // Parser CSV que mapea cada fila exacta (Plazo -> Mensualidad)
+    // Parser CSV que soporta celdas combinadas de Google Sheets
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
         const data = {};
 
-        // Índices basados en la estructura del Excel:
-        // C: COTIZACIONES (Unidad) | D: VERSION | F: ENGANCHE | G: PLAZO | H: MENSUALIDAD | I: PRECIO
+        // Índices por defecto
         let idxUnidad = 2;
         let idxVersion = 3;
         let idxEnganche = 5;
@@ -45,14 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentUnidad = "";
         let currentVersion = "";
         let currentPrecio = "";
+        let currentEnganche = "";
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
 
-            const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"\vert{}"$/g, ''));
+            const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => cleanText(c));
 
-            // Encabezados
+            // Detección de Encabezados
             const lineUpper = line.toUpperCase();
             if (lineUpper.includes("COTIZACIONES") && lineUpper.includes("MENSUALIDAD")) {
                 cols.forEach((colHeader, idx) => {
@@ -69,21 +69,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const unidadVal = cols[idxUnidad] ? cols[idxUnidad].toUpperCase() : "";
             const versionVal = cols[idxVersion] ? cols[idxVersion].toUpperCase() : "";
-            const precioRaw = cols[idxPrecio] ? cols[idxPrecio].trim() : "";
-            
+            const precioRaw = cols[idxPrecio] || "";
+            const engancheRaw = cols[idxEnganche] || "";
+            const plazoRaw = cols[idxPlazo] || "";
+            const mensualidadRaw = cols[idxMensualidad] || "";
+
+            // Mantener valores de filas combinadas anteriores
             if (unidadVal && !unidadVal.includes("COTIZACION")) currentUnidad = unidadVal;
             if (versionVal && !versionVal.includes("VERSION")) currentVersion = versionVal;
-            if (precioRaw && precioRaw !== "") currentPrecio = precioRaw;
+            if (precioRaw !== "") currentPrecio = precioRaw;
+            if (engancheRaw !== "") currentEnganche = engancheRaw;
 
-            const engancheRaw = cols[idxEnganche] ? cols[idxEnganche].trim() : "";
-            const plazoRaw = cols[idxPlazo] ? cols[idxPlazo].trim() : "";
-            const mensualidadRaw = cols[idxMensualidad] ? cols[idxMensualidad].trim() : "";
-
-            if (!currentUnidad || !currentVersion || !engancheRaw || !plazoRaw || !mensualidadRaw) {
+            if (!currentUnidad || !currentVersion || !currentEnganche || !plazoRaw || !mensualidadRaw) {
                 continue;
             }
 
-            // Categorías por Tipo
+            // Tipo de Vehículo
             let tipo = "AUTOMÓVIL";
             if (["SONET", "SELTOS", "SPORTAGE", "SORENTO", "TELLURIDE"].includes(currentUnidad)) {
                 tipo = "SUV";
@@ -105,12 +106,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const engMap = data[tipo][currentUnidad][currentVersion].enganchesMap;
-            if (!engMap[engancheRaw]) {
-                engMap[engancheRaw] = {};
+            if (!engMap[currentEnganche]) {
+                engMap[currentEnganche] = {};
             }
 
-            // Mapea directamente la mensualidad original del Excel por plazo (72, 60, 48, 36)
-            engMap[engancheRaw][plazoRaw] = mensualidadRaw;
+            // Normalizar plazo a solo números (ej: "72 MESES" -> "72")
+            const plazoNum = plazoRaw.replace(/[^0-9]/g, '');
+            engMap[currentEnganche][plazoNum] = mensualidadRaw;
         }
 
         return data;
