@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    const API_URL = 'PEGAS_AQUÍ_TU_NUEVA_URL_DE_APPS_SCRIPT_TERMINADA_EN_EXEC';
+    // URL oficial directa de tu hoja publicada como CSV
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv&t=' + Date.now();
 
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
@@ -14,17 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const cleanText = (str) => {
         if (!str) return "";
         return str.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
-    };
-
-    const obtenerTipoPorUnidad = (unidad) => {
-        const u = unidad.toUpperCase();
-        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HIBRID") || u.includes("ELECTRICO")) {
-            return "HÍBRIDOS Y ELÉCTRICOS";
-        }
-        if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
-            return "SUV";
-        }
-        return "AUTOMÓVIL";
     };
 
     const parseCSVLine = (line) => {
@@ -49,7 +39,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
         const data = {
-            "AUTOMÓVIL": {},
+            "AUTOMÓVIL": {
+                "K3 SEDAN": {
+                    "L TM": {
+                        precio: "$750,000.00",
+                        tasa: "12.99%",
+                        enganchesMap: {
+                            "$63,511.95": { "72": "$5,197.51", "60": "$5,841.95", "48": "$6,826.91", "36": "$8,493.94" },
+                            "$92,989.79": { "72": "$4,547.82", "60": "$5,111.62", "48": "$5,973.55", "36": "$7,432.19" }
+                        }
+                    },
+                    "LX TM": {
+                        precio: "$358,800.00",
+                        tasa: "12.99%",
+                        enganchesMap: {
+                            "$56,690.50": { "72": "$6,112.31", "60": "$6,870.06", "48": "$8,028.51", "36": "$9,988.94" }
+                        }
+                    }
+                }
+            },
             "SUV": {},
             "HÍBRIDOS Y ELÉCTRICOS": {}
         };
@@ -58,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let lastVersion = "";
         let lastTasa = "";
         let lastEnganche = "";
-        let lastPrecio = "";
+        let lastPrecio = "$750,000.00";
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -83,25 +91,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (versionVal && !versionVal.toUpperCase().includes("VERSION")) lastVersion = versionVal.toUpperCase();
             if (tasaVal && !tasaVal.toUpperCase().includes("TASA")) lastTasa = tasaVal;
             if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) lastEnganche = engancheVal;
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO")) lastPrecio = precioVal;
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2) lastPrecio = precioVal;
 
             if (!lastUnidad || !lastVersion || !lastEnganche || !plazoVal || !mensualidadVal) {
                 continue;
             }
 
-            const tipo = obtenerTipoPorUnidad(lastUnidad);
+            // Categorización automática inteligente
+            let tipo = "AUTOMÓVIL";
+            if (lastUnidad.includes("SONET") || lastUnidad.includes("SELTOS") || lastUnidad.includes("SPORTAGE") || lastUnidad.includes("SORENTO") || lastUnidad.includes("TELLURIDE") || lastUnidad.includes("SUV")) {
+                tipo = "SUV";
+            } else if (lastUnidad.includes("NIRO") || lastUnidad.includes("EV3") || lastUnidad.includes("EV6") || lastUnidad.includes("EV9") || lastUnidad.includes("HEV")) {
+                tipo = "HÍBRIDOS Y ELÉCTRICOS";
+            }
 
             if (!data[tipo]) data[tipo] = {};
             if (!data[tipo][lastUnidad]) data[tipo][lastUnidad] = {};
             if (!data[tipo][lastUnidad][lastVersion]) {
                 data[tipo][lastUnidad][lastVersion] = {
-                    precio: lastPrecio || "$750,000.00",
-                    tasa: lastTasa,
+                    precio: lastPrecio,
+                    tasa: lastTasa || "12.99%",
                     enganchesMap: {}
                 };
             }
 
-            if (lastPrecio && !data[tipo][lastUnidad][lastVersion].precio) {
+            if (lastPrecio) {
                 data[tipo][lastUnidad][lastVersion].precio = lastPrecio;
             }
 
@@ -121,21 +135,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cargarDatos = async () => {
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(SHEET_CSV_URL);
             if (response.ok) {
                 const text = await response.text();
-                vehiculosData = parseCSV(text);
-                poblarSelectTipos();
+                const parsed = parseCSV(text);
+                if (Object.keys(parsed["AUTOMÓVIL"]).length > 1 || Object.keys(parsed["SUV"]).length > 0) {
+                    vehiculosData = parsed;
+                }
             }
         } catch (err) {
-            console.error("Error al cargar la API:", err);
+            console.error("Usando datos de respaldo locales por error de red", err);
         }
+        
+        // Si por algo falló la red, inicializa con estructura segura para que nunca quede en blanco
+        if (!vehiculosData || Object.keys(vehiculosData["AUTOMÓVIL"]).length === 0) {
+            vehiculosData = parseCSV(""); 
+        }
+
+        poblarSelectTipos();
     };
 
     const poblarSelectTipos = () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
-        const categorias = Object.keys(vehiculosData).length > 0 ? Object.keys(vehiculosData) : ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
+        const categorias = ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
 
         categorias.forEach(tipo => {
             const opt = document.createElement('option');
