@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL con parámetro de tiempo para ignorar la caché de Google Sheets
+    // URL del CSV publicado en Google Sheets
     const BASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
 
+    // Elementos DOM
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
     const selectVersion = document.getElementById('select-version');
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return val.toString().replace(/^["'\s]+|["'\s]+\$/g, '').trim();
     };
 
+    // Parser CSV con soporte para comas dentro de comillas
     const parseCSVLine = (line) => {
         const result = [];
         let cur = '';
@@ -36,14 +38,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return result;
     };
 
+    // Clasificación de categorías según la unidad encontrada
     const obtenerTipoPorUnidad = (unidad) => {
         const u = unidad.toUpperCase();
+
         if (
             u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || 
             u.includes("NIRO") || u.includes("HEV") || u.includes("HIBRID") || u.includes("ELECTRICO")
         ) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
+
         if (
             u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || 
             u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") ||
@@ -51,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ) {
             return "SUV";
         }
+
         return "AUTOMÓVIL";
     };
 
@@ -62,6 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
             "HÍBRIDOS Y ELÉCTRICOS": {}
         };
 
+        // Posiciones directas según la estructura de tu hoja (Col C a Col I)
+        const idxUnidad = 2;      // Col C: COTIZACIONES
+        const idxVersion = 3;     // Col D: VERSION
+        const idxTasa = 4;        // Col E: TASA
+        const idxEnganche = 5;    // Col F: ENGANCHE
+        const idxPlazo = 6;       // Col G: PLAZO
+        const idxMensualidad = 7; // Col H: MENSUALIDAD
+        const idxPrecio = 8;      // Col I: PRECIO
+
+        // Memoria para rellenar celdas combinadas de Google Sheets
         let lastUnidad = "";
         let lastVersion = "";
         let lastTasa = "";
@@ -75,26 +91,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const cols = parseCSVLine(line);
             const lineUpper = line.toUpperCase();
 
-            // Omitir cabecera
+            // Omitir filas de títulos o encabezados
             if (lineUpper.includes("COTIZACIONES") || lineUpper.includes("VERSION") || lineUpper.includes("MENSUALIDAD")) {
                 continue;
             }
 
-            // Col C (índice 2) -> COTIZACIONES (Unidad)
-            // Col D (índice 3) -> VERSION
-            // Col E (índice 4) -> TASA
-            // Col F (índice 5) -> ENGANCHE
-            // Col G (índice 6) -> PLAZO
-            // Col H (índice 7) -> MENSUALIDAD
-            // Col I (índice 8) -> PRECIO
-            const unidadVal = cols[2] || "";
-            const versionVal = cols[3] || "";
-            const tasaVal = cols[4] || "";
-            const engancheVal = cols[5] || "";
-            const plazoVal = cols[6] || "";
-            const mensualidadVal = cols[7] || "";
-            const precioVal = cols[8] || "";
+            const unidadVal = cols[idxUnidad] || "";
+            const versionVal = cols[idxVersion] || "";
+            const tasaVal = cols[idxTasa] || "";
+            const engancheVal = cols[idxEnganche] || "";
+            const plazoVal = cols[idxPlazo] || "";
+            const mensualidadVal = cols[idxMensualidad] || "";
+            const precioVal = cols[idxPrecio] || "";
 
+            // Retener el último valor visto cuando las celdas vienen combinadas/vacías
             if (unidadVal) lastUnidad = unidadVal.toUpperCase();
             if (versionVal) lastVersion = versionVal.toUpperCase();
             if (tasaVal) lastTasa = tasaVal;
@@ -145,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 poblarSelectTipos();
             }
         } catch (err) {
-            console.error("Error al cargar datos del CSV:", err);
+            console.error("Error al cargar el CSV de Google Sheets:", err);
         }
     };
 
