@@ -10,44 +10,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const precioListaEl = document.getElementById('precio-lista');
     const mesRows = document.querySelectorAll('.mes-row strong');
 
-    // Botones e Interfaz
-    const btnContact = document.getElementById('btn-contact');
-    const modal = document.getElementById('contact-modal');
-    const btnClose = document.getElementById('close-modal');
-    const btnWhatsapp = document.getElementById('btn-whatsapp');
-    const btnEmail = document.getElementById('btn-email');
-
     let vehiculosData = {};
 
-    // Limpieza de comillas y espacios extras del CSV
-    const cleanText = (str) => {
-        if (!str) return "";
-        return str.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
+    // Limpiar comillas y espacios de los valores del CSV
+    const clean = (val) => {
+        if (!val) return "";
+        return val.toString().replace(/^["'\s]+|["'\s]+\$/g, '').trim();
     };
 
-    // Clasificación de categoría por nombre de modelo/unidad
+    // Clasificar categoría según el modelo
     const obtenerTipoPorUnidad = (unidad) => {
         const u = unidad.toUpperCase();
 
         if (
-            u.includes("EV3") || 
-            u.includes("EV6") || 
-            u.includes("EV9") || 
-            u.includes("NIRO") || 
-            u.includes("HEV") || 
-            u.includes("HIBRID") || 
-            u.includes("ELECTRICO")
+            u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || 
+            u.includes("NIRO") || u.includes("HEV") || u.includes("HIBRID") || u.includes("ELECTRICO")
         ) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
 
         if (
-            u.includes("SONET") || 
-            u.includes("SELTOS") || 
-            u.includes("SPORTAGE") || 
-            u.includes("SORENTO") || 
-            u.includes("TELLURIDE") || 
-            u.includes("SOUL")
+            u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || 
+            u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL")
         ) {
             return "SUV";
         }
@@ -55,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return "AUTOMÓVIL";
     };
 
-    // Parser manual para no romper cadenas con comas dentro de comillas
+    // Parser manual para no romper montos con comas como "\$750,000.00"
     const parseCSVLine = (line) => {
         const result = [];
         let cur = '';
@@ -65,13 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (char === '"') {
                 inQuotes = !inQuotes;
             } else if (char === ',' && !inQuotes) {
-                result.push(cleanText(cur));
+                result.push(clean(cur));
                 cur = '';
             } else {
                 cur += char;
             }
         }
-        result.push(cleanText(cur));
+        result.push(clean(cur));
         return result;
     };
 
@@ -83,95 +67,83 @@ document.addEventListener('DOMContentLoaded', () => {
             "HÍBRIDOS Y ELÉCTRICOS": {}
         };
 
-        // Índices de columnas dinámicos
-        let idxUnidad = -1;
-        let idxVersion = -1;
-        let idxTasa = -1;
-        let idxEnganche = -1;
-        let idxPlazo = -1;
-        let idxMensualidad = -1;
-        let idxPrecio = -1;
-        let idxObservacion = -1;
-
-        let currentUnidad = "";
-        let currentVersion = "";
-        let currentTasa = "";
-        let currentEnganche = "";
-        let currentPrecio = "";
-        let currentObservacion = "";
+        // Celdas combinadas: mantenemos memoria del último valor visto
+        let lastUnidad = "";
+        let lastVersion = "";
+        let lastTasa = "";
+        let lastEnganche = "";
+        let lastPrecio = "";
+        let lastObservacion = "";
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
 
             const cols = parseCSVLine(line);
+
+            // Ignorar la fila de cabecera (Fila 2 del Excel)
             const lineUpper = line.toUpperCase();
-
-            // Detectar automáticamente en qué columna está cada cabecera
-            if (lineUpper.includes("COTIZACIONES") && lineUpper.includes("MENSUALIDAD")) {
-                cols.forEach((colHeader, idx) => {
-                    const h = colHeader.toUpperCase();
-                    if (h.includes("COTIZACION") || h.includes("UNIDAD")) idxUnidad = idx;
-                    if (h.includes("VERSION")) idxVersion = idx;
-                    if (h.includes("TASA")) idxTasa = idx;
-                    if (h.includes("ENGANCHE")) idxEnganche = idx;
-                    if (h.includes("PLAZO")) idxPlazo = idx;
-                    if (h.includes("MENSUALIDAD")) idxMensualidad = idx;
-                    if (h.includes("PRECIO")) idxPrecio = idx;
-                    if (h.includes("OBSERVACION")) idxObservacion = idx;
-                });
+            if (lineUpper.includes("COTIZACIONES") || lineUpper.includes("VERSION") || lineUpper.includes("MENSUALIDAD")) {
                 continue;
             }
 
-            // Omitir hasta haber localizado las cabeceras
-            if (idxUnidad === -1 || idxMensualidad === -1) continue;
+            // Estructura según tu foto (Columnas A y B vacías -> C es posición 2):
+            // Pos 2 (Col C): COTIZACIONES (Unidad)
+            // Pos 3 (Col D): VERSION
+            // Pos 4 (Col E): TASA
+            // Pos 5 (Col F): ENGANCHE
+            // Pos 6 (Col G): PLAZO
+            // Pos 7 (Col H): MENSUALIDAD
+            // Pos 8 (Col I): PRECIO
+            // Pos 9 (Col J): OBSERVACION
 
-            const unidadVal = cols[idxUnidad] ? cols[idxUnidad].toUpperCase() : "";
-            const versionVal = cols[idxVersion] ? cols[idxVersion].toUpperCase() : "";
-            const tasaVal = cols[idxTasa] || "";
-            const engancheVal = cols[idxEnganche] || "";
-            const plazoVal = cols[idxPlazo] || "";
-            const mensualidadVal = cols[idxMensualidad] || "";
-            const precioVal = cols[idxPrecio] || "";
-            const observacionVal = cols[idxObservacion] || "";
+            const unidadVal = cols[2] || "";
+            const versionVal = cols[3] || "";
+            const tasaVal = cols[4] || "";
+            const engancheVal = cols[5] || "";
+            const plazoVal = cols[6] || "";
+            const mensualidadVal = cols[7] || "";
+            const precioVal = cols[8] || "";
+            const observacionVal = cols[9] || "";
 
-            // Preservar valores de celdas combinadas verticalmente
-            if (unidadVal && !unidadVal.includes("COTIZACION")) currentUnidad = unidadVal;
-            if (versionVal && !versionVal.includes("VERSION")) currentVersion = versionVal;
-            if (tasaVal && !tasaVal.includes("TASA")) currentTasa = tasaVal;
-            if (engancheVal && !engancheVal.includes("ENGANCHE")) currentEnganche = engancheVal;
-            if (precioVal && !precioVal.includes("PRECIO")) currentPrecio = precioVal;
-            if (observacionVal && !observacionVal.includes("OBSERVACION")) currentObservacion = observacionVal;
+            // Si la celda trae valor, actualizamos. Si viene vacía (celda combinada), usamos el anterior.
+            if (unidadVal) lastUnidad = unidadVal.toUpperCase();
+            if (versionVal) lastVersion = versionVal.toUpperCase();
+            if (tasaVal) lastTasa = tasaVal;
+            if (engancheVal) lastEnganche = engancheVal;
+            if (precioVal) lastPrecio = precioVal;
+            if (observacionVal) lastObservacion = observacionVal;
 
-            if (!currentUnidad || !currentVersion || !currentEnganche || !plazoVal || !mensualidadVal) {
+            // Si no hay unidad, versión o plazo/mensualidad, saltamos la fila
+            if (!lastUnidad || !lastVersion || !lastEnganche || !plazoVal || !mensualidadVal) {
                 continue;
             }
 
-            const tipo = obtenerTipoPorUnidad(currentUnidad);
+            const tipo = obtenerTipoPorUnidad(lastUnidad);
 
             if (!data[tipo]) data[tipo] = {};
-            if (!data[tipo][currentUnidad]) data[tipo][currentUnidad] = {};
-            if (!data[tipo][currentUnidad][currentVersion]) {
-                data[tipo][currentUnidad][currentVersion] = {
-                    precio: currentPrecio,
-                    tasa: currentTasa,
-                    observacion: currentObservacion,
+            if (!data[tipo][lastUnidad]) data[tipo][lastUnidad] = {};
+            if (!data[tipo][lastUnidad][lastVersion]) {
+                data[tipo][lastUnidad][lastVersion] = {
+                    precio: lastPrecio,
+                    tasa: lastTasa,
+                    observacion: lastObservacion,
                     enganchesMap: {}
                 };
             }
 
-            if (currentPrecio) data[tipo][currentUnidad][currentVersion].precio = currentPrecio;
-            if (currentTasa) data[tipo][currentUnidad][currentVersion].tasa = currentTasa;
-            if (currentObservacion) data[tipo][currentUnidad][currentVersion].observacion = currentObservacion;
+            if (lastPrecio) data[tipo][lastUnidad][lastVersion].precio = lastPrecio;
+            if (lastTasa) data[tipo][lastUnidad][lastVersion].tasa = lastTasa;
+            if (lastObservacion) data[tipo][lastUnidad][lastVersion].observacion = lastObservacion;
 
-            const engMap = data[tipo][currentUnidad][currentVersion].enganchesMap;
-            if (!engMap[currentEnganche]) {
-                engMap[currentEnganche] = {};
+            const engMap = data[tipo][lastUnidad][lastVersion].enganchesMap;
+            if (!engMap[lastEnganche]) {
+                engMap[lastEnganche] = {};
             }
 
             const plazoNum = plazoVal.replace(/[^0-9]/g, '');
             if (plazoNum) {
-                engMap[currentEnganche][plazoNum] = mensualidadVal;
+                engMap[lastEnganche][plazoNum] = mensualidadVal;
             }
         }
 
@@ -188,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 poblarSelectTipos();
             }
         } catch (err) {
-            console.error("Error al cargar datos desde Google Sheets:", err);
+            console.error("Error al cargar CSV:", err);
         }
     };
 
@@ -211,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cargarUnidades = () => {
         if (!selectUnidad) return;
         const tipoSeleccionado = selectTipo.value;
-        selectUnidad.innerHTML = '<option value="">-- SELECCIONA UNIDAD --</option>';
+        selectUnidad.innerHTML = '';
 
         if (vehiculosData[tipoSeleccionado]) {
             const unidades = Object.keys(vehiculosData[tipoSeleccionado]);
@@ -221,11 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.textContent = unidad;
                 selectUnidad.appendChild(opt);
             });
-
-            // Si existen unidades para la categoría, seleccionar automáticamente la primera
-            if (unidades.length > 0) {
-                selectUnidad.value = unidades[0];
-            }
         }
 
         cargarVersiones();
@@ -236,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipoSeleccionado = selectTipo.value;
         const unidadSeleccionada = selectUnidad.value;
 
-        selectVersion.innerHTML = '<option value="">-- SELECCIONA VERSIÓN --</option>';
+        selectVersion.innerHTML = '';
 
         if (vehiculosData[tipoSeleccionado]?.[unidadSeleccionada]) {
             const versiones = Object.keys(vehiculosData[tipoSeleccionado][unidadSeleccionada]);
@@ -246,11 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.textContent = version;
                 selectVersion.appendChild(opt);
             });
-
-            // Seleccionar la primera versión por defecto si existe
-            if (versiones.length > 0) {
-                selectVersion.value = versiones[0];
-            }
         }
 
         cargarEnganches();
@@ -262,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const unidadSeleccionada = selectUnidad.value;
         const versionSeleccionada = selectVersion.value;
 
-        selectEnganche.innerHTML = '<option value="">-- SELECCIONA ENGANCHE --</option>';
+        selectEnganche.innerHTML = '';
 
         const info = vehiculosData[tipoSeleccionado]?.[unidadSeleccionada]?.[versionSeleccionada];
         if (info && info.enganchesMap) {
@@ -273,11 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.textContent = montoEnganche;
                 selectEnganche.appendChild(opt);
             });
-
-            // Seleccionar el primer enganche por defecto
-            if (enganches.length > 0) {
-                selectEnganche.value = enganches[0];
-            }
         }
 
         actualizarCalculos();
@@ -291,40 +248,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const version = selectVersion.value;
         const engancheKey = selectEnganche.value;
 
-        // Si no hay datos seleccionados, reiniciar vista
-        if (!unidad || !version || !vehiculosData[tipo]?.[unidad]?.[version]) {
-            if (precioListaEl) precioListaEl.innerText = "$0.00";
-            if (mesRows) {
-                mesRows.forEach(row => row.innerText = "$0.00");
-            }
+        if (!vehiculosData[tipo]?.[unidad]?.[version]) {
+            if (precioListaEl) precioListaEl.innerText = "\$0.00";
+            if (mesRows) mesRows.forEach(row => row.innerText = "\$0.00");
             return;
         }
 
         const info = vehiculosData[tipo][unidad][version];
         
-        // Actualizar precio de lista
         if (precioListaEl) {
-            precioListaEl.innerText = info.precio || "$0.00";
+            precioListaEl.innerText = info.precio || "\$0.00";
         }
 
-        // Actualizar tabla de plazos (72, 60, 48, 36 meses)
         const plazosMap = info.enganchesMap?.[engancheKey] || {};
         const plazos = ["72", "60", "48", "36"];
 
         plazos.forEach((plazoKey, index) => {
-            const valorMensualidad = plazosMap[plazoKey] || "$0.00";
+            const valorMensualidad = plazosMap[plazoKey] || "\$0.00";
             if (mesRows[index]) {
                 mesRows[index].innerText = valorMensualidad;
             }
         });
     };
 
-    // Registros de eventos de cambio en los selects
+    // Eventos
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
-    // Inicializar carga de datos
+    // Inicializar
     cargarDatos();
 });
