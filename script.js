@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL de la pestaña COTIZACIONES publicada en formato CSV
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
 
     // Elementos DOM
@@ -27,11 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return str.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
     };
 
-    // Mapeo exhaustivo de unidades a su TIPO según la pestaña COTIZACIONES
+    // Clasificación por tipo de unidad
     const obtenerTipoPorUnidad = (unidad) => {
         const u = unidad.toUpperCase();
 
-        // Híbridos y Eléctricos
         if (
             u.includes("EV3") || 
             u.includes("EV6") || 
@@ -44,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
 
-        // SUVs
         if (
             u.includes("SONET") || 
             u.includes("SELTOS") || 
@@ -56,60 +53,98 @@ document.addEventListener('DOMContentLoaded', () => {
             return "SUV";
         }
 
-        // Automóviles (K3, K4, K5, Forte, Rio, etc.)
         return "AUTOMÓVIL";
+    };
+
+    // Función para parsear CSV respetando comillas y comas internas
+    const parseCSVLine = (line) => {
+        const result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(cleanText(cur));
+                cur = '';
+            } else {
+                cur += char;
+            }
+        }
+        result.push(cleanText(cur));
+        return result;
     };
 
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
-        const data = {};
+        const data = {
+            "AUTOMÓVIL": {},
+            "SUV": {},
+            "HÍBRIDOS Y ELÉCTRICOS": {}
+        };
 
-        let idxUnidad = 2;
-        let idxVersion = 3;
-        let idxEnganche = 5;
-        let idxPlazo = 6;
-        let idxMensualidad = 7;
-        let idxPrecio = 8;
+        // Índices dinámicos
+        let idxUnidad = -1;
+        let idxVersion = -1;
+        let idxTasa = -1;
+        let idxEnganche = -1;
+        let idxPlazo = -1;
+        let idxMensualidad = -1;
+        let idxPrecio = -1;
+        let idxObservacion = -1;
 
         let currentUnidad = "";
         let currentVersion = "";
-        let currentPrecio = "";
+        let currentTasa = "";
         let currentEnganche = "";
+        let currentPrecio = "";
+        let currentObservacion = "";
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
 
-            const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => cleanText(c));
-
+            const cols = parseCSVLine(line);
             const lineUpper = line.toUpperCase();
+
+            // Detectar los encabezados dinámicamente sin importar en qué columna estén
             if (lineUpper.includes("COTIZACIONES") && lineUpper.includes("MENSUALIDAD")) {
                 cols.forEach((colHeader, idx) => {
                     const h = colHeader.toUpperCase();
                     if (h.includes("COTIZACION") || h.includes("UNIDAD")) idxUnidad = idx;
                     if (h.includes("VERSION")) idxVersion = idx;
+                    if (h.includes("TASA")) idxTasa = idx;
                     if (h.includes("ENGANCHE")) idxEnganche = idx;
                     if (h.includes("PLAZO")) idxPlazo = idx;
                     if (h.includes("MENSUALIDAD")) idxMensualidad = idx;
                     if (h.includes("PRECIO")) idxPrecio = idx;
+                    if (h.includes("OBSERVACION")) idxObservacion = idx;
                 });
                 continue;
             }
 
+            // Si aún no ha encontrado los encabezados, no procesa la fila
+            if (idxUnidad === -1 || idxMensualidad === -1) continue;
+
             const unidadVal = cols[idxUnidad] ? cols[idxUnidad].toUpperCase() : "";
             const versionVal = cols[idxVersion] ? cols[idxVersion].toUpperCase() : "";
-            const precioRaw = cols[idxPrecio] || "";
-            const engancheRaw = cols[idxEnganche] || "";
-            const plazoRaw = cols[idxPlazo] || "";
-            const mensualidadRaw = cols[idxMensualidad] || "";
+            const tasaVal = cols[idxTasa] || "";
+            const engancheVal = cols[idxEnganche] || "";
+            const plazoVal = cols[idxPlazo] || "";
+            const mensualidadVal = cols[idxMensualidad] || "";
+            const precioVal = cols[idxPrecio] || "";
+            const observacionVal = cols[idxObservacion] || "";
 
-            // Recordar valores para celdas combinadas en Excel
+            // Mantener valores de celdas combinadas
             if (unidadVal && !unidadVal.includes("COTIZACION")) currentUnidad = unidadVal;
             if (versionVal && !versionVal.includes("VERSION")) currentVersion = versionVal;
-            if (precioRaw !== "") currentPrecio = precioRaw;
-            if (engancheRaw !== "") currentEnganche = engancheRaw;
+            if (tasaVal && !tasaVal.includes("TASA")) currentTasa = tasaVal;
+            if (engancheVal && !engancheVal.includes("ENGANCHE")) currentEnganche = engancheVal;
+            if (precioVal && !precioVal.includes("PRECIO")) currentPrecio = precioVal;
+            if (observacionVal && !observacionVal.includes("OBSERVACION")) currentObservacion = observacionVal;
 
-            if (!currentUnidad || !currentVersion || !currentEnganche || !plazoRaw || !mensualidadRaw) {
+            if (!currentUnidad || !currentVersion || !currentEnganche || !plazoVal || !mensualidadVal) {
                 continue;
             }
 
@@ -120,21 +155,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data[tipo][currentUnidad][currentVersion]) {
                 data[tipo][currentUnidad][currentVersion] = {
                     precio: currentPrecio,
+                    tasa: currentTasa,
+                    observacion: currentObservacion,
                     enganchesMap: {}
                 };
             }
 
-            if (currentPrecio) {
-                data[tipo][currentUnidad][currentVersion].precio = currentPrecio;
-            }
+            if (currentPrecio) data[tipo][currentUnidad][currentVersion].precio = currentPrecio;
+            if (currentTasa) data[tipo][currentUnidad][currentVersion].tasa = currentTasa;
+            if (currentObservacion) data[tipo][currentUnidad][currentVersion].observacion = currentObservacion;
 
             const engMap = data[tipo][currentUnidad][currentVersion].enganchesMap;
             if (!engMap[currentEnganche]) {
                 engMap[currentEnganche] = {};
             }
 
-            const plazoNum = plazoRaw.replace(/[^0-9]/g, '');
-            engMap[currentEnganche][plazoNum] = mensualidadRaw;
+            const plazoNum = plazoVal.replace(/[^0-9]/g, '');
+            if (plazoNum) {
+                engMap[currentEnganche][plazoNum] = mensualidadVal;
+            }
         }
 
         return data;
@@ -146,14 +185,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(urlAntiCache);
             if (response.ok) {
                 const text = await response.text();
-                const parsed = parseCSV(text);
-                if (parsed && Object.keys(parsed).length > 0) {
-                    vehiculosData = parsed;
-                    poblarSelectTipos();
-                }
+                vehiculosData = parseCSV(text);
+                poblarSelectTipos();
             }
         } catch (err) {
-            console.error("Error al cargar datos de Google Sheets:", err);
+            console.error("Error al cargar datos:", err);
         }
     };
 
@@ -161,15 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
 
-        const ordenDeseado = ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
-        const tiposDisponibles = Object.keys(vehiculosData);
+        const categoriasFijas = ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
 
-        const tiposOrdenados = [
-            ...ordenDeseado.filter(t => tiposDisponibles.includes(t)),
-            ...tiposDisponibles.filter(t => !ordenDeseado.includes(t))
-        ];
-
-        tiposOrdenados.forEach(tipo => {
+        categoriasFijas.forEach(tipo => {
             const opt = document.createElement('option');
             opt.value = tipo;
             opt.textContent = tipo;
@@ -232,18 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
         actualizarCalculos();
     };
 
-    const actualizarResumenModal = (unidad, version, enganche, mensualidad48) => {
-        const sumUnidad = document.getElementById('summary-unidad');
-        const sumVersion = document.getElementById('summary-version');
-        const sumEnganche = document.getElementById('summary-enganche');
-        const sumMensualidad = document.getElementById('summary-mensualidad');
-
-        if (sumUnidad) sumUnidad.innerText = unidad;
-        if (sumVersion) sumVersion.innerText = version;
-        if (sumEnganche) sumEnganche.innerText = enganche;
-        if (sumMensualidad) sumMensualidad.innerText = mensualidad48;
-    };
-
     const actualizarCalculos = () => {
         if (!selectTipo || !selectUnidad || !selectVersion || !selectEnganche) return;
 
@@ -269,31 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 mesRows[index].innerText = valorMensualidad;
             }
         });
-
-        actualizarResumenModal(unidad, version, engancheKey, mensualidad48);
-        actualizarPlantillaPDF(unidad, version, info.precio, engancheKey, plazosMap);
-    };
-
-    const actualizarPlantillaPDF = (unidad, version, precio, enganche, plazosMap) => {
-        const pdfTable = document.querySelector('#pdf-template-container .pdf-table');
-        if (pdfTable) {
-            const tds = pdfTable.querySelectorAll('td.fw-bold');
-            if (tds.length >= 4) {
-                tds[0].innerText = unidad;
-                tds[1].innerText = version;
-                tds[2].innerText = precio;
-                tds[3].innerText = enganche;
-            }
-        }
-
-        const pdfMesTds = document.querySelectorAll('#pdf-template-container .pdf-table-mensualidades td.fw-bold');
-        const plazos = ["72", "60", "48", "36"];
-
-        plazos.forEach((plazoKey, index) => {
-            if (pdfMesTds[index]) {
-                pdfMesTds[index].innerText = plazosMap[plazoKey] || "$0.00";
-            }
-        });
     };
 
     // Eventos
@@ -302,97 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
-    // Modal
-    if (btnContact && modal) {
-        btnContact.addEventListener('click', (e) => {
-            e.preventDefault();
-            modal.classList.add('active');
-        });
-    }
-
-    if (btnClose && modal) {
-        btnClose.addEventListener('click', () => {
-            modal.classList.remove('active');
-        });
-    }
-
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('active');
-        });
-    }
-
-    // PDF / Impresión
-    const ImprimirCotizacion = () => {
-        const pdfDateEl = document.getElementById('pdf-date');
-        if (pdfDateEl) {
-            pdfDateEl.innerText = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
-        }
-
-        if (modal) modal.classList.remove('active');
-
-        const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        if (esMovil && typeof html2pdf !== 'undefined') {
-            const elementoPDF = document.getElementById('pdf-template-container');
-            const unidad = selectUnidad ? selectUnidad.value : 'Cotizacion';
-            const version = selectVersion ? selectVersion.value : 'KIA';
-
-            const opciones = {
-                margin:       10,
-                filename:     `Cotizacion_KIA_${unidad}_${version}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' }
-            };
-
-            elementoPDF.style.display = 'block';
-
-            html2pdf().set(opciones).from(elementoPDF).save().then(() => {
-                elementoPDF.style.display = '';
-            });
-        } else {
-            window.print();
-        }
-    };
-
-    if (btnPdfMain) btnPdfMain.addEventListener('click', ImprimirCotizacion);
-    if (btnPdfModal) btnPdfModal.addEventListener('click', ImprimirCotizacion);
-
-    // Enlaces Contacto
-    const getMensajeContacto = () => {
-        const inputNombre = document.getElementById('user-name');
-        const inputPhone = document.getElementById('user-phone');
-
-        const nombre = (inputNombre && inputNombre.value.trim() !== '') ? inputNombre.value.trim() : 'Cliente';
-        const telefono = (inputPhone && inputPhone.value.trim() !== '') ? inputPhone.value.trim() : 'No proporcionado';
-
-        const unidad = selectUnidad ? selectUnidad.value : '';
-        const version = selectVersion ? selectVersion.value : '';
-        const engancheTxt = document.getElementById('summary-enganche')?.innerText || '$0.00';
-        const mensualidadTxt = document.getElementById('summary-mensualidad')?.innerText || '$0.00';
-
-        const mensaje = `Hola Abel, mi nombre es ${nombre} (Tel: ${telefono}).
-Estoy interesado en la cotización del KIA ${unidad} (${version}).
-- Enganche: ${engancheTxt}
-- Mensualidad (48m): ${mensualidadTxt}`;
-
-        return encodeURIComponent(mensaje);
-    };
-
-    if (btnWhatsapp) {
-        btnWhatsapp.addEventListener('click', () => {
-            window.open(`https://wa.me/528448067192?text=${getMensajeContacto()}`, '_blank');
-        });
-    }
-
-    if (btnEmail) {
-        btnEmail.addEventListener('click', () => {
-            const asunto = encodeURIComponent('Cotización de vehículo KIA');
-            window.location.href = `mailto:abel.ortiz@kiamax.com?subject=${asunto}&body=${getMensajeContacto()}`;
-        });
-    }
-
-    // Inicialización
+    // Inicializar
     cargarDatos();
 });
