@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL con timestamp para evitar que Google conserve datos viejos
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv&_t=' + Date.now();
 
     const selectTipo = document.getElementById('select-tipo');
@@ -17,17 +16,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return str.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
     };
 
-    // Mapeo exhaustivo de categorías por nombre del vehículo
+    // Mapeo basado exactamente en las unidades de tu hoja de cálculo
     const obtenerTipoPorUnidad = (unidad) => {
         const u = unidad.toUpperCase();
 
+        // Híbridos y Eléctricos
         if (
-            u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || 
-            u.includes("NIRO") || u.includes("HEV") || u.includes("HIBRID") || u.includes("ELECTRICO")
+            u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || 
+            u.includes("EV9") || u.includes("HEV") || u.includes("HIBRID") || 
+            u.includes("ELECTRICO")
         ) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
 
+        // SUVs
         if (
             u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || 
             u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || 
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return "SUV";
         }
 
+        // Automóviles (K3 SEDAN, K3 HATCHBACK, K4, K5, FORTE, etc.)
         return "AUTOMÓVIL";
     };
 
@@ -66,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "HÍBRIDOS Y ELÉCTRICOS": {}
         };
 
-        // Memoria para rellenar celdas combinadas de Google Sheets
+        // Memoria para conservar celdas combinadas en Google Sheets
         let lastUnidad = "";
         let lastVersion = "";
         let lastTasa = "";
@@ -80,19 +83,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const cols = parseCSVLine(line);
             const lineUpper = line.toUpperCase();
 
-            // Omitir cabecera (Fila 2)
+            // Omitir encabezados
             if (lineUpper.includes("COTIZACIONES") || lineUpper.includes("VERSION") || lineUpper.includes("MENSUALIDAD")) {
                 continue;
             }
 
-            // Mapeo de columnas según tu captura:
-            // Posición 2 (Col C) -> COTIZACIONES (Unidad)
-            // Posición 3 (Col D) -> VERSION
-            // Posición 4 (Col E) -> TASA
-            // Posición 5 (Col F) -> ENGANCHE
-            // Posición 6 (Col G) -> PLAZO
-            // Posición 7 (Col H) -> MENSUALIDAD
-            // Posición 8 (Col I) -> PRECIO
+            // Posiciones según la hoja COTIZACIONES (Col C a Col I):
+            // Col C (índice 2) -> UNIDAD
+            // Col D (índice 3) -> VERSION
+            // Col E (índice 4) -> TASA
+            // Col F (índice 5) -> ENGANCHE
+            // Col G (índice 6) -> PLAZO
+            // Col H (índice 7) -> MENSUALIDAD
+            // Col I (índice 8) -> PRECIO
 
             const unidadVal = cols[2] || "";
             const versionVal = cols[3] || "";
@@ -102,11 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const mensualidadVal = cols[7] || "";
             const precioVal = cols[8] || "";
 
-            if (unidadVal) lastUnidad = unidadVal.toUpperCase();
-            if (versionVal) lastVersion = versionVal.toUpperCase();
-            if (tasaVal) lastTasa = tasaVal;
-            if (engancheVal) lastEnganche = engancheVal;
-            if (precioVal) lastPrecio = precioVal;
+            if (unidadVal && !unidadVal.includes("COTIZACION")) lastUnidad = unidadVal.toUpperCase();
+            if (versionVal && !versionVal.includes("VERSION")) lastVersion = versionVal.toUpperCase();
+            if (tasaVal && !tasaVal.includes("TASA")) lastTasa = tasaVal;
+            if (engancheVal && !engancheVal.includes("ENGANCHE")) lastEnganche = engancheVal;
+            if (precioVal && !precioVal.includes("PRECIO")) lastPrecio = precioVal;
 
             if (!lastUnidad || !lastVersion || !lastEnganche || !plazoVal || !mensualidadVal) {
                 continue;
@@ -263,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
-    if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
+    if (selectUnidad) selectUnidad.addEventListener('change', cargarUnidades);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
