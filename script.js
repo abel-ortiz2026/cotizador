@@ -2,8 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // URL con timestamp dinámico para bypass completo de caché en Google Sheets
     const GET_FRESH_CSV_URL = () => {
-        const baseUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
-        return `${baseUrl}&cachebust=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const baseUrl = 'https://script.google.com/macros/s/AKfycbwwV36j2P-8HlYavptj5803J6dXpSkbONDug-Unth8GMcihZrAmzlaCw5Fp-gAqEo-9kg/exec`;
     };
 
     const selectTipo = document.getElementById('select-tipo');
