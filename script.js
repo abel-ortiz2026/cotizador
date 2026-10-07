@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL de Google Sheets publicado en CSV
+    // URL de la pestaña COTIZACIONES publicada en formato CSV
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
 
     // Elementos DOM
@@ -22,18 +22,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let vehiculosData = {};
 
-    // Función para limpiar comillas, espacios y caracteres sobrantes
     const cleanText = (str) => {
         if (!str) return "";
         return str.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
     };
 
-    // Parser CSV que soporta celdas combinadas de Google Sheets
+    // Mapeo exhaustivo de unidades a su TIPO según la pestaña COTIZACIONES
+    const obtenerTipoPorUnidad = (unidad) => {
+        const u = unidad.toUpperCase();
+
+        // Híbridos y Eléctricos
+        if (
+            u.includes("EV3") || 
+            u.includes("EV6") || 
+            u.includes("EV9") || 
+            u.includes("NIRO") || 
+            u.includes("HEV") || 
+            u.includes("HIBRID") || 
+            u.includes("ELECTRICO")
+        ) {
+            return "HÍBRIDOS Y ELÉCTRICOS";
+        }
+
+        // SUVs
+        if (
+            u.includes("SONET") || 
+            u.includes("SELTOS") || 
+            u.includes("SPORTAGE") || 
+            u.includes("SORENTO") || 
+            u.includes("TELLURIDE") || 
+            u.includes("SOUL")
+        ) {
+            return "SUV";
+        }
+
+        // Automóviles (K3, K4, K5, Forte, Rio, etc.)
+        return "AUTOMÓVIL";
+    };
+
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
         const data = {};
 
-        // Índices por defecto
         let idxUnidad = 2;
         let idxVersion = 3;
         let idxEnganche = 5;
@@ -52,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => cleanText(c));
 
-            // Detección de Encabezados
             const lineUpper = line.toUpperCase();
             if (lineUpper.includes("COTIZACIONES") && lineUpper.includes("MENSUALIDAD")) {
                 cols.forEach((colHeader, idx) => {
@@ -74,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const plazoRaw = cols[idxPlazo] || "";
             const mensualidadRaw = cols[idxMensualidad] || "";
 
-            // Mantener valores de filas combinadas anteriores
+            // Recordar valores para celdas combinadas en Excel
             if (unidadVal && !unidadVal.includes("COTIZACION")) currentUnidad = unidadVal;
             if (versionVal && !versionVal.includes("VERSION")) currentVersion = versionVal;
             if (precioRaw !== "") currentPrecio = precioRaw;
@@ -84,13 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 continue;
             }
 
-            // Tipo de Vehículo
-            let tipo = "AUTOMÓVIL";
-            if (["SONET", "SELTOS", "SPORTAGE", "SORENTO", "TELLURIDE"].includes(currentUnidad)) {
-                tipo = "SUV";
-            } else if (["NIRO", "SELTOS HIBRIDA", "SPORTAGE HEV", "EV3 ELECTRICO", "EV3", "EV6"].includes(currentUnidad)) {
-                tipo = "HÍBRIDOS Y ELÉCTRICOS";
-            }
+            const tipo = obtenerTipoPorUnidad(currentUnidad);
 
             if (!data[tipo]) data[tipo] = {};
             if (!data[tipo][currentUnidad]) data[tipo][currentUnidad] = {};
@@ -110,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 engMap[currentEnganche] = {};
             }
 
-            // Normalizar plazo a solo números (ej: "72 MESES" -> "72")
             const plazoNum = plazoRaw.replace(/[^0-9]/g, '');
             engMap[currentEnganche][plazoNum] = mensualidadRaw;
         }
@@ -138,12 +160,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const poblarSelectTipos = () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
-        Object.keys(vehiculosData).forEach(tipo => {
+
+        const ordenDeseado = ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
+        const tiposDisponibles = Object.keys(vehiculosData);
+
+        const tiposOrdenados = [
+            ...ordenDeseado.filter(t => tiposDisponibles.includes(t)),
+            ...tiposDisponibles.filter(t => !ordenDeseado.includes(t))
+        ];
+
+        tiposOrdenados.forEach(tipo => {
             const opt = document.createElement('option');
             opt.value = tipo;
             opt.textContent = tipo;
             selectTipo.appendChild(opt);
         });
+
         cargarUnidades();
     };
 
