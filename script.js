@@ -1,9 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL con timestamp dinámico para bypass completo de caché en Google Sheets
-    const GET_FRESH_CSV_URL = () => {
-        const baseUrl = 'https://script.google.com/macros/s/AKfycbwwV36j2P-8HlYavptj5803J6dXpSkbONDug-Unth8GMcihZrAmzlaCw5Fp-gAqEo-9kg/exec`;
-    };
+    const API_URL = 'PEGAS_AQUÍ_TU_NUEVA_URL_DE_APPS_SCRIPT_TERMINADA_EN_EXEC';
 
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
@@ -16,29 +13,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cleanText = (str) => {
         if (!str) return "";
-        return str.toString().replace(/^["'\s]+|["'\s]+\$/g, '').trim();
+        return str.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
     };
 
-    // Mapeo flexible de unidades a categorías
     const obtenerTipoPorUnidad = (unidad) => {
         const u = unidad.toUpperCase();
-
-        if (
-            u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || 
-            u.includes("EV9") || u.includes("HEV") || u.includes("HIBRID") || 
-            u.includes("ELECTRICO")
-        ) {
+        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HIBRID") || u.includes("ELECTRICO")) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
-
-        if (
-            u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || 
-            u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || 
-            u.includes("SUV")
-        ) {
+        if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
             return "SUV";
         }
-
         return "AUTOMÓVIL";
     };
 
@@ -74,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let lastTasa = "";
         let lastEnganche = "";
         let lastPrecio = "";
-        let lastObservacion = "";
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -83,13 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const cols = parseCSVLine(line);
             const lineUpper = line.toUpperCase();
 
-            // Descartar encabezados
             if (lineUpper.includes("COTIZACIONES") || lineUpper.includes("VERSION") || lineUpper.includes("MENSUALIDAD")) {
                 continue;
             }
 
-            // Col C (2) = UNIDAD | Col D (3) = VERSION | Col E (4) = TASA | Col F (5) = ENGANCHE
-            // Col G (6) = PLAZO  | Col H (7) = MENSUALIDAD | Col I (8) = PRECIO | Col J (9) = OBSERVACION
             const unidadVal = cols[2] || "";
             const versionVal = cols[3] || "";
             const tasaVal = cols[4] || "";
@@ -97,14 +78,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const plazoVal = cols[6] || "";
             const mensualidadVal = cols[7] || "";
             const precioVal = cols[8] || "";
-            const observacionVal = cols[9] || "";
 
-            if (unidadVal && !unidadVal.includes("COTIZACION")) lastUnidad = unidadVal.toUpperCase();
-            if (versionVal && !versionVal.includes("VERSION")) lastVersion = versionVal.toUpperCase();
-            if (tasaVal && !tasaVal.includes("TASA")) lastTasa = tasaVal;
-            if (engancheVal && !engancheVal.includes("ENGANCHE")) lastEnganche = engancheVal;
-            if (precioVal && !precioVal.includes("PRECIO")) lastPrecio = precioVal;
-            if (observacionVal && !observacionVal.includes("OBSERVACION")) lastObservacion = observacionVal;
+            if (unidadVal && !unidadVal.toUpperCase().includes("COTIZACION")) lastUnidad = unidadVal.toUpperCase();
+            if (versionVal && !versionVal.toUpperCase().includes("VERSION")) lastVersion = versionVal.toUpperCase();
+            if (tasaVal && !tasaVal.toUpperCase().includes("TASA")) lastTasa = tasaVal;
+            if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) lastEnganche = engancheVal;
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO")) lastPrecio = precioVal;
 
             if (!lastUnidad || !lastVersion || !lastEnganche || !plazoVal || !mensualidadVal) {
                 continue;
@@ -116,9 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data[tipo][lastUnidad]) data[tipo][lastUnidad] = {};
             if (!data[tipo][lastUnidad][lastVersion]) {
                 data[tipo][lastUnidad][lastVersion] = {
-                    precio: lastPrecio || "\$750,000.00",
+                    precio: lastPrecio || "$750,000.00",
                     tasa: lastTasa,
-                    observacion: lastObservacion,
                     enganchesMap: {}
                 };
             }
@@ -143,22 +121,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cargarDatos = async () => {
         try {
-            const response = await fetch(GET_FRESH_CSV_URL(), { cache: 'no-store' });
+            const response = await fetch(API_URL);
             if (response.ok) {
                 const text = await response.text();
                 vehiculosData = parseCSV(text);
                 poblarSelectTipos();
             }
         } catch (err) {
-            console.error("Error al cargar el CSV de Google Sheets:", err);
+            console.error("Error al cargar la API:", err);
         }
     };
 
     const poblarSelectTipos = () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
-
-        const categorias = ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
+        const categorias = Object.keys(vehiculosData).length > 0 ? Object.keys(vehiculosData) : ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
 
         categorias.forEach(tipo => {
             const opt = document.createElement('option');
@@ -184,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectUnidad.appendChild(opt);
             });
         }
-
         cargarVersiones();
     };
 
@@ -192,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectVersion) return;
         const tipoSeleccionado = selectTipo.value;
         const unidadSeleccionada = selectUnidad.value;
-
         selectVersion.innerHTML = '';
 
         if (vehiculosData[tipoSeleccionado]?.[unidadSeleccionada]) {
@@ -204,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectVersion.appendChild(opt);
             });
         }
-
         cargarEnganches();
     };
 
@@ -213,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipoSeleccionado = selectTipo.value;
         const unidadSeleccionada = selectUnidad.value;
         const versionSeleccionada = selectVersion.value;
-
         selectEnganche.innerHTML = '';
 
         const info = vehiculosData[tipoSeleccionado]?.[unidadSeleccionada]?.[versionSeleccionada];
@@ -226,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectEnganche.appendChild(opt);
             });
         }
-
         actualizarCalculos();
     };
 
@@ -238,23 +210,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const version = selectVersion.value;
         const engancheKey = selectEnganche.value;
 
-        if (!vehiculosData[tipo]?.[unidad]?.[version]) {
-            if (precioListaEl) precioListaEl.innerText = "\$0.00";
-            if (mesRows) mesRows.forEach(row => row.innerText = "\$0.00");
+        const info = vehiculosData[tipo]?.[unidad]?.[version];
+        if (!info) {
+            if (precioListaEl) precioListaEl.innerText = "$750,000.00";
+            if (mesRows) mesRows.forEach(row => row.innerText = "$0.00");
             return;
         }
 
-        const info = vehiculosData[tipo][unidad][version];
-        
         if (precioListaEl) {
-            precioListaEl.innerText = info.precio || "\$750,000.00";
+            precioListaEl.innerText = info.precio || "$750,000.00";
         }
 
         const plazosMap = info.enganchesMap?.[engancheKey] || {};
         const plazos = ["72", "60", "48", "36"];
 
         plazos.forEach((plazoKey, index) => {
-            const valorMensualidad = plazosMap[plazoKey] || "\$0.00";
+            const valorMensualidad = plazosMap[plazoKey] || "$0.00";
             if (mesRows[index]) {
                 mesRows[index].innerText = valorMensualidad;
             }
