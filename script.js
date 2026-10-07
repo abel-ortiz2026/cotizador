@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
+    // URL con parámetro de tiempo para ignorar la caché de Google Sheets
+    const BASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
 
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
@@ -13,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const clean = (val) => {
         if (!val) return "";
-        return val.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
+        return val.toString().replace(/^["'\s]+|["'\s]+\$/g, '').trim();
     };
 
     const parseCSVLine = (line) => {
@@ -55,21 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
-        const data = {};
-
-        let colIndexes = {
-            unidad: -1,
-            version: -1,
-            tasa: -1,
-            enganche: -1,
-            plazo: -1,
-            mensualidad: -1,
-            precio: -1
+        const data = {
+            "AUTOMÓVIL": {},
+            "SUV": {},
+            "HÍBRIDOS Y ELÉCTRICOS": {}
         };
 
-        let headerFound = false;
-
-        // Memoria para celdas combinadas de Google Sheets
         let lastUnidad = "";
         let lastVersion = "";
         let lastTasa = "";
@@ -81,36 +73,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!line) continue;
 
             const cols = parseCSVLine(line);
+            const lineUpper = line.toUpperCase();
 
-            // 1. Detección dinámica de cabeceras
-            if (!headerFound) {
-                const lineUpper = cols.map(c => c.toUpperCase());
-                const idxUnidad = lineUpper.findIndex(c => c.includes("COTIZACIONES") || c.includes("UNIDAD"));
-                const idxVersion = lineUpper.findIndex(c => c.includes("VERSION"));
-
-                if (idxUnidad !== -1 && idxVersion !== -1) {
-                    colIndexes.unidad = idxUnidad;
-                    colIndexes.version = idxVersion;
-                    colIndexes.tasa = lineUpper.findIndex(c => c.includes("TASA"));
-                    colIndexes.enganche = lineUpper.findIndex(c => c.includes("ENGANCHE"));
-                    colIndexes.plazo = lineUpper.findIndex(c => c.includes("PLAZO"));
-                    colIndexes.mensualidad = lineUpper.findIndex(c => c.includes("MENSUALIDAD"));
-                    colIndexes.precio = lineUpper.findIndex(c => c.includes("PRECIO"));
-                    headerFound = true;
-                }
-                continue; // Saltar la fila de encabezado
+            // Omitir cabecera
+            if (lineUpper.includes("COTIZACIONES") || lineUpper.includes("VERSION") || lineUpper.includes("MENSUALIDAD")) {
+                continue;
             }
 
-            // 2. Extraer valores segun el mapeo de columnas detectado
-            const unidadVal = colIndexes.unidad !== -1 ? cols[colIndexes.unidad] : "";
-            const versionVal = colIndexes.version !== -1 ? cols[colIndexes.version] : "";
-            const tasaVal = colIndexes.tasa !== -1 ? cols[colIndexes.tasa] : "";
-            const engancheVal = colIndexes.enganche !== -1 ? cols[colIndexes.enganche] : "";
-            const plazoVal = colIndexes.plazo !== -1 ? cols[colIndexes.plazo] : "";
-            const mensualidadVal = colIndexes.mensualidad !== -1 ? cols[colIndexes.mensualidad] : "";
-            const precioVal = colIndexes.precio !== -1 ? cols[colIndexes.precio] : "";
+            // Col C (índice 2) -> COTIZACIONES (Unidad)
+            // Col D (índice 3) -> VERSION
+            // Col E (índice 4) -> TASA
+            // Col F (índice 5) -> ENGANCHE
+            // Col G (índice 6) -> PLAZO
+            // Col H (índice 7) -> MENSUALIDAD
+            // Col I (índice 8) -> PRECIO
+            const unidadVal = cols[2] || "";
+            const versionVal = cols[3] || "";
+            const tasaVal = cols[4] || "";
+            const engancheVal = cols[5] || "";
+            const plazoVal = cols[6] || "";
+            const mensualidadVal = cols[7] || "";
+            const precioVal = cols[8] || "";
 
-            // 3. Relleno de celdas combinadas
             if (unidadVal) lastUnidad = unidadVal.toUpperCase();
             if (versionVal) lastVersion = versionVal.toUpperCase();
             if (tasaVal) lastTasa = tasaVal;
@@ -133,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // Asegurar que actualice el precio si viene en la fila
             if (lastPrecio) {
                 data[tipo][lastUnidad][lastVersion].precio = lastPrecio;
             }
@@ -154,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cargarDatos = async () => {
         try {
-            const urlAntiCache = `${SHEET_CSV_URL}&_v=${Date.now()}`;
+            const urlAntiCache = `${BASE_CSV_URL}&_nocache=${Date.now()}`;
             const response = await fetch(urlAntiCache);
             if (response.ok) {
                 const text = await response.text();
@@ -162,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 poblarSelectTipos();
             }
         } catch (err) {
-            console.error("Error al cargar datos:", err);
+            console.error("Error al cargar datos del CSV:", err);
         }
     };
 
@@ -170,23 +153,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
 
-        const tiposDisponibles = Object.keys(vehiculosData);
+        const categorias = ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
 
-        if (tiposDisponibles.length === 0) {
-            ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"].forEach(tipo => {
-                const opt = document.createElement('option');
-                opt.value = tipo;
-                opt.textContent = tipo;
-                selectTipo.appendChild(opt);
-            });
-        } else {
-            tiposDisponibles.forEach(tipo => {
-                const opt = document.createElement('option');
-                opt.value = tipo;
-                opt.textContent = tipo;
-                selectTipo.appendChild(opt);
-            });
-        }
+        categorias.forEach(tipo => {
+            const opt = document.createElement('option');
+            opt.value = tipo;
+            opt.textContent = tipo;
+            selectTipo.appendChild(opt);
+        });
 
         cargarUnidades();
     };
@@ -260,22 +234,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const engancheKey = selectEnganche.value;
 
         if (!vehiculosData[tipo]?.[unidad]?.[version]) {
-            if (precioListaEl) precioListaEl.innerText = "$0.00";
-            if (mesRows) mesRows.forEach(row => row.innerText = "$0.00");
+            if (precioListaEl) precioListaEl.innerText = "\$0.00";
+            if (mesRows) mesRows.forEach(row => row.innerText = "\$0.00");
             return;
         }
 
         const info = vehiculosData[tipo][unidad][version];
         
         if (precioListaEl) {
-            precioListaEl.innerText = info.precio || "$0.00";
+            precioListaEl.innerText = info.precio || "\$0.00";
         }
 
         const plazosMap = info.enganchesMap?.[engancheKey] || {};
         const plazos = ["72", "60", "48", "36"];
 
         plazos.forEach((plazoKey, index) => {
-            const valorMensualidad = plazosMap[plazoKey] || "$0.00";
+            const valorMensualidad = plazosMap[plazoKey] || "\$0.00";
             if (mesRows[index]) {
                 mesRows[index].innerText = valorMensualidad;
             }
