@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL oficial directa de tu hoja publicada como CSV
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv&t=' + Date.now();
+    // URL oficial del CSV con control anti-caché
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv&_t=' + Date.now();
 
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
@@ -10,11 +10,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const precioListaEl = document.getElementById('precio-lista');
     const mesRows = document.querySelectorAll('.mes-row strong');
 
-    let vehiculosData = {};
+    let vehiculosData = {
+        "AUTOMÓVIL": {},
+        "SUV": {},
+        "HÍBRIDOS Y ELÉCTRICOS": {}
+    };
 
     const cleanText = (str) => {
         if (!str) return "";
         return str.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
+    };
+
+    const obtenerTipoPorUnidad = (unidad) => {
+        const u = unidad.toUpperCase();
+        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HIBRID") || u.includes("ELECTRICO")) {
+            return "HÍBRIDOS Y ELÉCTRICOS";
+        }
+        if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
+            return "SUV";
+        }
+        return "AUTOMÓVIL";
     };
 
     const parseCSVLine = (line) => {
@@ -36,28 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return result;
     };
 
-    const parseCSV = (csvText) => {
-        const lines = csvText.split(/\r\n|\n/);
+    const parsearCSVTexto = (text) => {
+        const lines = text.split(/\r\n|\n/);
         const data = {
-            "AUTOMÓVIL": {
-                "K3 SEDAN": {
-                    "L TM": {
-                        precio: "$750,000.00",
-                        tasa: "12.99%",
-                        enganchesMap: {
-                            "$63,511.95": { "72": "$5,197.51", "60": "$5,841.95", "48": "$6,826.91", "36": "$8,493.94" },
-                            "$92,989.79": { "72": "$4,547.82", "60": "$5,111.62", "48": "$5,973.55", "36": "$7,432.19" }
-                        }
-                    },
-                    "LX TM": {
-                        precio: "$358,800.00",
-                        tasa: "12.99%",
-                        enganchesMap: {
-                            "$56,690.50": { "72": "$6,112.31", "60": "$6,870.06", "48": "$8,028.51", "36": "$9,988.94" }
-                        }
-                    }
-                }
-            },
+            "AUTOMÓVIL": {},
             "SUV": {},
             "HÍBRIDOS Y ELÉCTRICOS": {}
         };
@@ -66,15 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let lastVersion = "";
         let lastTasa = "";
         let lastEnganche = "";
-        let lastPrecio = "$750,000.00";
+        let lastPrecio = "";
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
 
             const cols = parseCSVLine(line);
-            const lineUpper = line.toUpperCase();
+            if (cols.length < 8) continue;
 
+            const lineUpper = line.toUpperCase();
             if (lineUpper.includes("COTIZACIONES") || lineUpper.includes("VERSION") || lineUpper.includes("MENSUALIDAD")) {
                 continue;
             }
@@ -97,19 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 continue;
             }
 
-            // Categorización automática inteligente
-            let tipo = "AUTOMÓVIL";
-            if (lastUnidad.includes("SONET") || lastUnidad.includes("SELTOS") || lastUnidad.includes("SPORTAGE") || lastUnidad.includes("SORENTO") || lastUnidad.includes("TELLURIDE") || lastUnidad.includes("SUV")) {
-                tipo = "SUV";
-            } else if (lastUnidad.includes("NIRO") || lastUnidad.includes("EV3") || lastUnidad.includes("EV6") || lastUnidad.includes("EV9") || lastUnidad.includes("HEV")) {
-                tipo = "HÍBRIDOS Y ELÉCTRICOS";
-            }
+            const tipo = obtenerTipoPorUnidad(lastUnidad);
 
             if (!data[tipo]) data[tipo] = {};
             if (!data[tipo][lastUnidad]) data[tipo][lastUnidad] = {};
             if (!data[tipo][lastUnidad][lastVersion]) {
                 data[tipo][lastUnidad][lastVersion] = {
-                    precio: lastPrecio,
+                    precio: lastPrecio || "$0.00",
                     tasa: lastTasa || "12.99%",
                     enganchesMap: {}
                 };
@@ -138,18 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(SHEET_CSV_URL);
             if (response.ok) {
                 const text = await response.text();
-                const parsed = parseCSV(text);
-                if (Object.keys(parsed["AUTOMÓVIL"]).length > 1 || Object.keys(parsed["SUV"]).length > 0) {
-                    vehiculosData = parsed;
+                const resultado = parsearCSVTexto(text);
+                if (Object.keys(resultado["AUTOMÓVIL"]).length > 0 || Object.keys(resultado["SUV"]).length > 0) {
+                    vehiculosData = resultado;
                 }
             }
         } catch (err) {
-            console.error("Usando datos de respaldo locales por error de red", err);
-        }
-        
-        // Si por algo falló la red, inicializa con estructura segura para que nunca quede en blanco
-        if (!vehiculosData || Object.keys(vehiculosData["AUTOMÓVIL"]).length === 0) {
-            vehiculosData = parseCSV(""); 
+            console.error("Error al obtener datos del CSV:", err);
         }
 
         poblarSelectTipos();
@@ -158,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const poblarSelectTipos = () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
-        const categorias = ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"];
+        const categorias = Object.keys(vehiculosData);
 
         categorias.forEach(tipo => {
             const opt = document.createElement('option');
@@ -175,8 +162,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipoSeleccionado = selectTipo.value;
         selectUnidad.innerHTML = '';
 
-        if (vehiculosData[tipoSeleccionado]) {
-            const unidades = Object.keys(vehiculosData[tipoSeleccionado]);
+        const unidades = vehiculosData[tipoSeleccionado] ? Object.keys(vehiculosData[tipoSeleccionado]) : [];
+        
+        if (unidades.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = "";
+            opt.textContent = "No hay unidades disponibles";
+            selectUnidad.appendChild(opt);
+        } else {
             unidades.forEach(unidad => {
                 const opt = document.createElement('option');
                 opt.value = unidad;
@@ -193,8 +186,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const unidadSeleccionada = selectUnidad.value;
         selectVersion.innerHTML = '';
 
-        if (vehiculosData[tipoSeleccionado]?.[unidadSeleccionada]) {
-            const versiones = Object.keys(vehiculosData[tipoSeleccionado][unidadSeleccionada]);
+        const versiones = vehiculosData[tipoSeleccionado]?.[unidadSeleccionada] ? Object.keys(vehiculosData[tipoSeleccionado][unidadSeleccionada]) : [];
+
+        if (versiones.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = "";
+            opt.textContent = "Sin versiones";
+            selectVersion.appendChild(opt);
+        } else {
             versiones.forEach(version => {
                 const opt = document.createElement('option');
                 opt.value = version;
@@ -213,8 +212,14 @@ document.addEventListener('DOMContentLoaded', () => {
         selectEnganche.innerHTML = '';
 
         const info = vehiculosData[tipoSeleccionado]?.[unidadSeleccionada]?.[versionSeleccionada];
-        if (info && info.enganchesMap) {
-            const enganches = Object.keys(info.enganchesMap);
+        const enganches = (info && info.enganchesMap) ? Object.keys(info.enganchesMap) : [];
+
+        if (enganches.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = "";
+            opt.textContent = "Sin enganches";
+            selectEnganche.appendChild(opt);
+        } else {
             enganches.forEach(montoEnganche => {
                 const opt = document.createElement('option');
                 opt.value = montoEnganche;
@@ -235,13 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const info = vehiculosData[tipo]?.[unidad]?.[version];
         if (!info) {
-            if (precioListaEl) precioListaEl.innerText = "$750,000.00";
+            if (precioListaEl) precioListaEl.innerText = "$0.00";
             if (mesRows) mesRows.forEach(row => row.innerText = "$0.00");
             return;
         }
 
         if (precioListaEl) {
-            precioListaEl.innerText = info.precio || "$750,000.00";
+            precioListaEl.innerText = info.precio || "$0.00";
         }
 
         const plazosMap = info.enganchesMap?.[engancheKey] || {};
@@ -255,10 +260,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Eventos de cambio interconectados correctamente
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
+    // Carga inicial
     cargarDatos();
 });
