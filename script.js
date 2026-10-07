@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv';
 
-    // Elementos del DOM
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
     const selectVersion = document.getElementById('select-version');
@@ -15,28 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const clean = (val) => {
         if (!val) return "";
         return val.toString().replace(/^["'\s]+|["'\s]+$/g, '').trim();
-    };
-
-    // Clasificación de categorías
-    const obtenerTipoPorUnidad = (unidad) => {
-        const u = unidad.toUpperCase();
-
-        if (
-            u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || 
-            u.includes("NIRO") || u.includes("HEV") || u.includes("HIBRID") || u.includes("ELECTRICO")
-        ) {
-            return "HÍBRIDOS Y ELÉCTRICOS";
-        }
-
-        if (
-            u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || 
-            u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") ||
-            u.includes("SUV")
-        ) {
-            return "SUV";
-        }
-
-        return "AUTOMÓVIL";
     };
 
     const parseCSVLine = (line) => {
@@ -58,20 +35,46 @@ document.addEventListener('DOMContentLoaded', () => {
         return result;
     };
 
+    const obtenerTipoPorUnidad = (unidad) => {
+        const u = unidad.toUpperCase();
+        if (
+            u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || 
+            u.includes("NIRO") || u.includes("HEV") || u.includes("HIBRID") || u.includes("ELECTRICO")
+        ) {
+            return "HÍBRIDOS Y ELÉCTRICOS";
+        }
+        if (
+            u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || 
+            u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") ||
+            u.includes("SUV")
+        ) {
+            return "SUV";
+        }
+        return "AUTOMÓVIL";
+    };
+
     const parseCSV = (csvText) => {
         const lines = csvText.split(/\r\n|\n/);
-        const data = {
-            "AUTOMÓVIL": {},
-            "SUV": {},
-            "HÍBRIDOS Y ELÉCTRICOS": {}
+        const data = {};
+
+        let colIndexes = {
+            unidad: -1,
+            version: -1,
+            tasa: -1,
+            enganche: -1,
+            plazo: -1,
+            mensualidad: -1,
+            precio: -1
         };
 
+        let headerFound = false;
+
+        // Memoria para celdas combinadas de Google Sheets
         let lastUnidad = "";
         let lastVersion = "";
         let lastTasa = "";
         let lastEnganche = "";
         let lastPrecio = "";
-        let lastObservacion = "";
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -79,36 +82,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cols = parseCSVLine(line);
 
-            const lineUpper = line.toUpperCase();
-            if (lineUpper.includes("COTIZACIONES") || lineUpper.includes("VERSION") || lineUpper.includes("MENSUALIDAD")) {
-                continue;
+            // 1. Detección dinámica de cabeceras
+            if (!headerFound) {
+                const lineUpper = cols.map(c => c.toUpperCase());
+                const idxUnidad = lineUpper.findIndex(c => c.includes("COTIZACIONES") || c.includes("UNIDAD"));
+                const idxVersion = lineUpper.findIndex(c => c.includes("VERSION"));
+
+                if (idxUnidad !== -1 && idxVersion !== -1) {
+                    colIndexes.unidad = idxUnidad;
+                    colIndexes.version = idxVersion;
+                    colIndexes.tasa = lineUpper.findIndex(c => c.includes("TASA"));
+                    colIndexes.enganche = lineUpper.findIndex(c => c.includes("ENGANCHE"));
+                    colIndexes.plazo = lineUpper.findIndex(c => c.includes("PLAZO"));
+                    colIndexes.mensualidad = lineUpper.findIndex(c => c.includes("MENSUALIDAD"));
+                    colIndexes.precio = lineUpper.findIndex(c => c.includes("PRECIO"));
+                    headerFound = true;
+                }
+                continue; // Saltar la fila de encabezado
             }
 
-            // Mapeo exacto según tu captura:
-            // Col C (index 2): COTIZACIONES (Unidad) -> K3 SEDAN
-            // Col D (index 3): VERSION -> L TM
-            // Col E (index 4): TASA -> 12.99%
-            // Col F (index 5): ENGANCHE -> $63,511.95
-            // Col G (index 6): PLAZO -> 72
-            // Col H (index 7): MENSUALIDAD -> $5,197.51
-            // Col I (index 8): PRECIO -> $750,000.00
+            // 2. Extraer valores segun el mapeo de columnas detectado
+            const unidadVal = colIndexes.unidad !== -1 ? cols[colIndexes.unidad] : "";
+            const versionVal = colIndexes.version !== -1 ? cols[colIndexes.version] : "";
+            const tasaVal = colIndexes.tasa !== -1 ? cols[colIndexes.tasa] : "";
+            const engancheVal = colIndexes.enganche !== -1 ? cols[colIndexes.enganche] : "";
+            const plazoVal = colIndexes.plazo !== -1 ? cols[colIndexes.plazo] : "";
+            const mensualidadVal = colIndexes.mensualidad !== -1 ? cols[colIndexes.mensualidad] : "";
+            const precioVal = colIndexes.precio !== -1 ? cols[colIndexes.precio] : "";
 
-            const unidadVal = cols[2] || "";
-            const versionVal = cols[3] || "";
-            const tasaVal = cols[4] || "";
-            const engancheVal = cols[5] || "";
-            const plazoVal = cols[6] || "";
-            const mensualidadVal = cols[7] || "";
-            const precioVal = cols[8] || "";
-            const observacionVal = cols[9] || "";
-
-            // Lógica de celdas combinadas en Google Sheets
+            // 3. Relleno de celdas combinadas
             if (unidadVal) lastUnidad = unidadVal.toUpperCase();
             if (versionVal) lastVersion = versionVal.toUpperCase();
             if (tasaVal) lastTasa = tasaVal;
             if (engancheVal) lastEnganche = engancheVal;
             if (precioVal) lastPrecio = precioVal;
-            if (observacionVal) lastObservacion = observacionVal;
 
             if (!lastUnidad || !lastVersion || !lastEnganche || !plazoVal || !mensualidadVal) {
                 continue;
@@ -122,14 +129,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 data[tipo][lastUnidad][lastVersion] = {
                     precio: lastPrecio,
                     tasa: lastTasa,
-                    observacion: lastObservacion,
                     enganchesMap: {}
                 };
             }
 
-            if (lastPrecio) data[tipo][lastUnidad][lastVersion].precio = lastPrecio;
-            if (lastTasa) data[tipo][lastUnidad][lastVersion].tasa = lastTasa;
-            if (lastObservacion) data[tipo][lastUnidad][lastVersion].observacion = lastObservacion;
+            // Asegurar que actualice el precio si viene en la fila
+            if (lastPrecio) {
+                data[tipo][lastUnidad][lastVersion].precio = lastPrecio;
+            }
 
             const engMap = data[tipo][lastUnidad][lastVersion].enganchesMap;
             if (!engMap[lastEnganche]) {
@@ -155,22 +162,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 poblarSelectTipos();
             }
         } catch (err) {
-            console.error("Error al cargar CSV:", err);
+            console.error("Error al cargar datos:", err);
         }
     };
 
     const poblarSelectTipos = () => {
         if (!selectTipo) return;
-        
-        // Solo mostramos los tipos que realmente tengan datos procesados
-        const tiposDisponibles = Object.keys(vehiculosData).filter(
-            tipo => Object.keys(vehiculosData[tipo]).length > 0
-        );
-
         selectTipo.innerHTML = '';
 
+        const tiposDisponibles = Object.keys(vehiculosData);
+
         if (tiposDisponibles.length === 0) {
-            // Si por algún motivo nada cuadró, cargamos todas las opciones por defecto
             ["AUTOMÓVIL", "SUV", "HÍBRIDOS Y ELÉCTRICOS"].forEach(tipo => {
                 const opt = document.createElement('option');
                 opt.value = tipo;
@@ -280,12 +282,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Eventos de cambio
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
-    // Inicializar
     cargarDatos();
 });
