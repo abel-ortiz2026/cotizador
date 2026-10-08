@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL oficial del CSV con control anti-caché
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeciveu_jyLNV4RZrGhyJNzbiWUMNLz3paNSxhB3NncLq2YLLzl3eCbW5wPC27gA/pub?gid=679410401&single=true&output=csv&_t=' + Date.now();
+    // URL oficial de tu Aplicación Web de Google Apps Script con control anti-caché
+    const SHEET_CSV_URL = 'https://script.google.com/macros/s/AKfycbvHkFKCmKo2mXfGLozes1Fp8spYQph1IFnN2nxq98cev7_yX1ZEf9R4UWChSntYJ03hw/exec?_t=' + Date.now();
 
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
@@ -131,12 +131,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const text = await response.text();
                 const resultado = parsearCSVTexto(text);
-                if (Object.keys(resultado["AUTOMÓVIL"]).length > 0 || Object.keys(resultado["SUV"]).length > 0) {
+                if (Object.keys(resultado["AUTOMÓVIL"]).length > 0 || Object.keys(resultado["SUV"]).length > 0 || Object.keys(resultado["HÍBRIDOS Y ELÉCTRICOS"]).length > 0) {
                     vehiculosData = resultado;
                 }
             }
         } catch (err) {
-            console.error("Error al obtener datos del CSV:", err);
+            console.error("Error al obtener datos del Apps Script:", err);
         }
 
         poblarSelectTipos();
@@ -260,12 +260,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Eventos de cambio interconectados correctamente
     if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
 
-    // Carga inicial
     cargarDatos();
 });
