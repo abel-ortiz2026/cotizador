@@ -60,9 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const mensualidadVal = (cols[7] || "").trim();
             const precioVal = (cols[8] || "").trim();
 
-            if (unidadVal && !unidadVal.toUpperCase().includes("COTIZACION") && !unidadVal.toUpperCase().includes("UNIDAD")) {
-                ultimaUnidad = unidadVal.toUpperCase();
-            }
+            const unidadUpper = (unidadVal || "").toUpperCase();
+if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
+    ultimaUnidad = unidadUpper;
+}
             if (versionVal && !versionVal.toUpperCase().includes("VERSION")) {
                 ultimaVersion = versionVal.toUpperCase();
             }
