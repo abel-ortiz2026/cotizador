@@ -43,10 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
             "HÍBRIDOS Y ELÉCTRICOS": {}
         };
 
-        let ultimaUnidad = "";
-        let ultimaVersion = "";
-        let precioActualBloque = "\$0.00";
-        let tasaActualBloque = "12.99%";
+        let unidadActual = "";
+        let versionActual = "";
+        let precioActual = "\$0.00";
+        let tasaActual = "12.99%";
         let engancheActual = "";
 
         rows.forEach((cols) => {
@@ -60,56 +60,52 @@ document.addEventListener('DOMContentLoaded', () => {
             const mensualidadVal = (cols[7] || "").trim();
             const precioVal = (cols[8] || "").trim();
 
+            // 1. Herencia de Unidad
             const unidadUpper = unidadVal.toUpperCase();
-            if (unidadUpper && !unidadUpper.includes("COTIZacion") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
-                ultimaUnidad = unidadUpper;
-                // Si cambia de unidad, reseteamos las referencias para evitar cruces
-                precioActualBloque = "\$0.00";
-                tasaActualBloque = "12.99%";
+            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
+                unidadActual = unidadUpper;
             }
-            
+
+            // 2. Herencia de Versión
             const versionUpper = versionVal.toUpperCase();
             if (versionUpper && !versionUpper.includes("VERSION")) {
-                ultimaVersion = versionUpper;
+                versionActual = versionUpper;
             }
 
-            // Si la celda trae un precio real, actualizamos el precio del bloque actual
+            // 3. Herencia de Precio
             if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
-                precioActualBloque = precioVal;
+                precioActual = precioVal;
             }
 
-            // Si la celda trae una tasa real con %, la actualizamos
+            // 4. Herencia de Tasa
             if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
-                tasaActualBloque = tasaVal;
+                tasaActual = tasaVal;
             }
 
-            // Si la celda trae un enganche real, lo actualizamos
+            // 5. Herencia de Enganche
             if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
                 engancheActual = engancheVal;
             }
 
-            if (!ultimaUnidad || !ultimaVersion || !engancheActual || !plazoVal || !mensualidadVal) return;
+            // Si faltan datos vitales para las mensualidades, saltamos esta línea específica
+            if (!unidadActual || !versionActual || !engancheActual || !plazoVal || !mensualidadVal) return;
 
-            const tipo = clasificarVehiculo(ultimaUnidad);
+            const tipo = clasificarVehiculo(unidadActual);
 
-            if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
-            if (!data[tipo][ultimaUnidad][ultimaVersion]) {
-                data[tipo][ultimaUnidad][ultimaVersion] = {
-                    precio: precioActualBloque,
-                    tasa: tasaActualBloque,
+            if (!data[tipo][unidadActual]) data[tipo][unidadActual] = {};
+            if (!data[tipo][unidadActual][versionActual]) {
+                data[tipo][unidadActual][versionActual] = {
+                    precio: precioActual,
+                    tasa: tasaActual,
                     enganchesMap: {}
                 };
             } else {
-                // Asegurarnos de mantener el precio y tasa oficiales del bloque si ya existe
-                if (precioActualBloque !== "\$0.00") {
-                    data[tipo][ultimaUnidad][ultimaVersion].precio = precioActualBloque;
-                }
-                if (tasaActualBloque) {
-                    data[tipo][ultimaUnidad][ultimaVersion].tasa = tasaActualBloque;
-                }
+                // Mantener siempre el precio y tasa vigentes del bloque
+                if (precioActual !== "\$0.00") data[tipo][unidadActual][versionActual].precio = precioActual;
+                if (tasaActual) data[tipo][unidadActual][versionActual].tasa = tasaActual;
             }
 
-            const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
+            const engMap = data[tipo][unidadActual][versionActual].enganchesMap;
             if (!engMap[engancheActual]) {
                 engMap[engancheActual] = {};
             }
