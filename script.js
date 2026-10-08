@@ -26,10 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const clasificarVehiculo = (unidad) => {
         const u = unidad.toUpperCase();
-        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELECTRICO")) {
+        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELECTRICO") || u.includes("PHEV")) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
-        if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
+        if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV") || u.includes("EV")) {
             return "SUV";
         }
         return "AUTOMÓVIL";
@@ -46,11 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let unidadActual = "";
         let versionActual = "";
         
-        // Diccionarios maestros para capturar exclusivamente el primer precio y tasa oficiales de cada versión
         let preciosMaestros = {};
         let tasasMaestros = {};
 
-        // PASADA 1: Capturar los datos principales y fijos de cada versión
+        // PASADA 1: Capturar precios y tasas oficiales por versión
         rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
 
@@ -72,18 +71,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!unidadActual || !versionActual) return;
             const clave = `${unidadActual}_${versionActual}`;
 
-            // Guardar el primer precio válido que aparezca para esta versión (ej. \$750,000.00) y bloquear cambios posteriores erróneos
             if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00" && !preciosMaestros[clave]) {
                 preciosMaestros[clave] = precioVal;
             }
 
-            // Guardar la tasa válida que corresponda
             if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%") && !tasasMaestros[clave]) {
                 tasasMaestros[clave] = tasaVal;
             }
         });
 
-        // PASADA 2: Construir la estructura completa de enganches y mensualidades para todos los vehículos
+        // PASADA 2: Construir la estructura completa agrupada por Tipos de Vehículo
         unidadActual = "";
         versionActual = "";
         let engancheActual = "";
