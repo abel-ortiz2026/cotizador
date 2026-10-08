@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const procesarCSV = (results) => {
         const rows = results.data;
+        console.log("Filas totales descargadas del CSV:", rows.length);
+        
         let data = {
             "AUTOMÓVIL": {},
             "SUV": {},
@@ -49,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let ultimoEnganche = "";
         let ultimoPrecio = "\$0.00";
 
-        rows.forEach(cols => {
+        rows.forEach((cols, index) => {
             if (!cols || cols.length < 8) return;
 
             const unidadVal = (cols[2] || "").trim();
@@ -61,9 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const precioVal = (cols[8] || "").trim();
 
             const unidadUpper = (unidadVal || "").toUpperCase();
-if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
-    ultimaUnidad = unidadUpper;
-}
+            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
+                ultimaUnidad = unidadUpper;
+            }
             if (versionVal && !versionVal.toUpperCase().includes("VERSION")) {
                 ultimaVersion = versionVal.toUpperCase();
             }
@@ -108,6 +110,7 @@ if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes(
             }
         });
 
+        console.log("Estructura final de vehiculosData:", data);
         vehiculosData = data;
         llenarTipos();
     };
@@ -225,13 +228,11 @@ if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes(
         });
     };
 
-    // Eventos de cambio en cascada
     if (selectTipo) selectTipo.addEventListener('change', llenarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', llenarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', llenarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarPantalla);
 
-    // Modal de contacto
     if (btnAbrirModal) {
         btnAbrirModal.addEventListener('click', () => {
             if (resumenUnidad) resumenUnidad.textContent = `Unidad: ${selectUnidad.value || '-'}`;
@@ -278,7 +279,6 @@ if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes(
         });
     }
 
-    // Descarga inicial con PapaParse
     Papa.parse(SHEET_CSV_URL, {
         download: true,
         header: false,
