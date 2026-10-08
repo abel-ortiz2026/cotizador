@@ -45,92 +45,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let ultimaUnidad = "";
         let ultimaVersion = "";
+        let precioActualBloque = "\$0.00";
+        let tasaActualBloque = "12.99%";
+        let engancheActual = "";
 
-        // Mapeos estritos para guardar el precio y tasa oficiales de cada versión la PRIMERA vez que aparecen
-        let preciosOficiales = {};
-        let tasasOficiales = {};
-
-        // Primera pasada: Capturar únicamente el precio y la tasa de la primera fila donde aparecen por versión
         rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
 
             const unidadVal = (cols[2] || "").trim();
             const versionVal = (cols[3] || "").trim();
             const tasaVal = (cols[4] || "").trim();
-            const precioVal = (cols[8] || "").trim();
-
-            const unidadUpper = unidadVal.toUpperCase();
-            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
-                ultimaUnidad = unidadUpper;
-            }
-            const versionUpper = versionVal.toUpperCase();
-            if (versionUpper && !versionUpper.includes("VERSION")) {
-                ultimaVersion = versionUpper;
-            }
-
-            if (!ultimaUnidad || !ultimaVersion) return;
-
-            const clave = `${ultimaUnidad}_${ultimaVersion}`;
-
-            // Guardamos el precio solo si viene definido y no lo hemos registrado antes para esta versión
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && !preciosOficiales[clave]) {
-                preciosOficiales[clave] = precioVal;
-            }
-
-            // Guardamos la tasa solo si viene definida con % y no la hemos registrado antes para esta versión
-            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%") && !tasasOficiales[clave]) {
-                tasasOficiales[clave] = tasaVal;
-            }
-        });
-
-        // Segunda pasada: Construir la estructura completa de enganches y mensualidades
-        ultimaUnidad = "";
-        ultimaVersion = "";
-
-        rows.forEach((cols) => {
-            if (!cols || cols.length < 8) return;
-
-            const unidadVal = (cols[2] || "").trim();
-            const versionVal = (cols[3] || "").trim();
             const engancheVal = (cols[5] || "").trim();
             const plazoVal = (cols[6] || "").trim();
             const mensualidadVal = (cols[7] || "").trim();
+            const precioVal = (cols[8] || "").trim();
 
             const unidadUpper = unidadVal.toUpperCase();
-            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
+            if (unidadUpper && !unidadUpper.includes("COTIZacion") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
                 ultimaUnidad = unidadUpper;
+                // Si cambia de unidad, reseteamos las referencias para evitar cruces
+                precioActualBloque = "\$0.00";
+                tasaActualBloque = "12.99%";
             }
+            
             const versionUpper = versionVal.toUpperCase();
             if (versionUpper && !versionUpper.includes("VERSION")) {
                 ultimaVersion = versionUpper;
             }
 
-            if (!ultimaUnidad || !ultimaVersion || !engancheVal || !plazoVal || !mensualidadVal) return;
-            if (engancheVal.toUpperCase().includes("ENGANCHE")) return;
+            // Si la celda trae un precio real, actualizamos el precio del bloque actual
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                precioActualBloque = precioVal;
+            }
+
+            // Si la celda trae una tasa real con %, la actualizamos
+            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
+                tasaActualBloque = tasaVal;
+            }
+
+            // Si la celda trae un enganche real, lo actualizamos
+            if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
+                engancheActual = engancheVal;
+            }
+
+            if (!ultimaUnidad || !ultimaVersion || !engancheActual || !plazoVal || !mensualidadVal) return;
 
             const tipo = clasificarVehiculo(ultimaUnidad);
-            const clave = `${ultimaUnidad}_${ultimaVersion}`;
-
-            const precioFinal = preciosOficiales[clave] || "\$0.00";
-            const tasaFinal = tasasOficiales[clave] || "12.99%";
 
             if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
             if (!data[tipo][ultimaUnidad][ultimaVersion]) {
                 data[tipo][ultimaUnidad][ultimaVersion] = {
-                    precio: precioFinal,
-                    tasa: tasaFinal,
+                    precio: precioActualBloque,
+                    tasa: tasaActualBloque,
                     enganchesMap: {}
                 };
+            } else {
+                // Asegurarnos de mantener el precio y tasa oficiales del bloque si ya existe
+                if (precioActualBloque !== "\$0.00") {
+                    data[tipo][ultimaUnidad][ultimaVersion].precio = precioActualBloque;
+                }
+                if (tasaActualBloque) {
+                    data[tipo][ultimaUnidad][ultimaVersion].tasa = tasaActualBloque;
+                }
             }
 
             const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
-            if (!engMap[engancheVal]) {
-                engMap[engancheVal] = {};
+            if (!engMap[engancheActual]) {
+                engMap[engancheActual] = {};
             }
 
             const plazoNum = plazoVal.replace(/[^0-9]/g, '');
             if (plazoNum) {
-                engMap[engancheVal][plazoNum] = mensualidadVal;
+                engMap[engancheActual][plazoNum] = mensualidadVal;
             }
         });
 
