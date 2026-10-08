@@ -61,16 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const precioVal = (cols[8] || "").trim();
 
             const unidadUpper = (unidadVal || "").toUpperCase();
-            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
+            if (unidadUpper && !unidadUpper.includes("COTIZacion") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
                 ultimaUnidad = unidadUpper;
             }
             
             const versionUpper = (versionVal || "").toUpperCase();
             if (versionUpper && !versionUpper.includes("VERSION")) {
                 ultimaVersion = versionUpper;
-                if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2) {
-                    ultimoPrecio = precioVal;
-                }
             }
 
             if (tasaVal && !tasaVal.toUpperCase().includes("TASA")) {
@@ -80,9 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ultimoEnganche = engancheVal;
             }
 
-            let precioActual = ultimoPrecio;
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
-                precioActual = precioVal;
+            // Capturar precio si viene explícito en la fila
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2) {
                 ultimoPrecio = precioVal;
             }
 
@@ -93,16 +89,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
             if (!data[tipo][ultimaUnidad][ultimaVersion]) {
                 data[tipo][ultimaUnidad][ultimaVersion] = {
-                    precio: precioActual,
+                    precio: ultimoPrecio,
                     tasa: ultimaTasa,
                     enganchesMap: {}
                 };
-            } else {
-                if (precioActual && precioActual !== "\$0.00") {
-                    data[tipo][ultimaUnidad][ultimaVersion].precio = precioActual;
-                }
             }
 
+            // Actualizar siempre con el precio más fresco si es válido
+            if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
+                data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
+            }
             if (ultimaTasa) {
                 data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
             }
