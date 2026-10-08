@@ -37,8 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const procesarCSV = (results) => {
         const rows = results.data;
-        console.log("Filas totales descargadas del CSV:", rows.length);
-        
         let data = {
             "AUTOMÓVIL": {},
             "SUV": {},
@@ -51,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let ultimoEnganche = "";
         let ultimoPrecio = "\$0.00";
 
-        rows.forEach((cols, index) => {
+        rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
 
             const unidadVal = (cols[2] || "").trim();
@@ -66,16 +64,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
                 ultimaUnidad = unidadUpper;
             }
-            if (versionVal && !versionVal.toUpperCase().includes("VERSION")) {
-                ultimaVersion = versionVal.toUpperCase();
+            
+            const versionUpper = (versionVal || "").toUpperCase();
+            if (versionUpper && !versionUpper.includes("VERSION")) {
+                ultimaVersion = versionUpper;
+                if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2) {
+                    ultimoPrecio = precioVal;
+                }
             }
+
             if (tasaVal && !tasaVal.toUpperCase().includes("TASA")) {
                 ultimaTasa = tasaVal;
             }
             if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
                 ultimoEnganche = engancheVal;
             }
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2) {
+
+            let precioActual = ultimoPrecio;
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                precioActual = precioVal;
                 ultimoPrecio = precioVal;
             }
 
@@ -86,15 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
             if (!data[tipo][ultimaUnidad][ultimaVersion]) {
                 data[tipo][ultimaUnidad][ultimaVersion] = {
-                    precio: ultimoPrecio,
+                    precio: precioActual,
                     tasa: ultimaTasa,
                     enganchesMap: {}
                 };
+            } else {
+                if (precioActual && precioActual !== "\$0.00") {
+                    data[tipo][ultimaUnidad][ultimaVersion].precio = precioActual;
+                }
             }
 
-            if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
-                data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
-            }
             if (ultimaTasa) {
                 data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
             }
@@ -110,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        console.log("Estructura final de vehiculosData:", data);
         vehiculosData = data;
         llenarTipos();
     };
