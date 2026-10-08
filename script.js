@@ -45,9 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let ultimaUnidad = "";
         let ultimaVersion = "";
-        let ultimaTasa = "12.99%";
-        let ultimoPrecio = "\$0.00";
+        let precioBloqueActual = "\$0.00";
+        let tasaBloqueActual = "12.99%";
 
+        // Recorremos las filas para detectar los precios y tasas reales que están en la primera fila de cada bloque
         rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
 
@@ -68,14 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 ultimaVersion = versionUpper;
             }
 
-            // Si la fila trae una tasa explícita, actualizarla
-            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
-                ultimaTasa = tasaVal;
+            // Si esta fila tiene un precio válido de lista (ej. \$750,000.00), lo guardamos como el precio oficial de este bloque
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                precioBloqueActual = precioVal;
             }
 
-            // Si la fila trae un precio explícito (y no el encabezado), actualizarlo inmediatamente
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
-                ultimoPrecio = precioVal;
+            // Si esta fila tiene una tasa válida, la guardamos
+            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
+                tasaBloqueActual = tasaVal;
             }
 
             if (!ultimaUnidad || !ultimaVersion || !engancheVal || !plazoVal || !mensualidadVal) return;
@@ -86,18 +87,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
             if (!data[tipo][ultimaUnidad][ultimaVersion]) {
                 data[tipo][ultimaUnidad][ultimaVersion] = {
-                    precio: ultimoPrecio,
-                    tasa: ultimaTasa,
+                    precio: precioBloqueActual,
+                    tasa: tasaBloqueActual,
                     enganchesMap: {}
                 };
-            }
-
-            // Forzar siempre a que la versión guarde el precio y la tasa más actual y correcta detectada
-            if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
-                data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
-            }
-            if (ultimaTasa) {
-                data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
+            } else {
+                // Actualizamos siempre con el precio y tasa más vigentes del bloque
+                if (precioBloqueActual !== "\$0.00") {
+                    data[tipo][ultimaUnidad][ultimaVersion].precio = precioBloqueActual;
+                }
+                if (tasaBloqueActual) {
+                    data[tipo][ultimaUnidad][ultimaVersion].tasa = tasaBloqueActual;
+                }
             }
 
             const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
