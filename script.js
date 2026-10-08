@@ -7,7 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectVersion = document.getElementById('select-version');
     const selectEnganche = document.getElementById('select-enganche');
     const precioListaEl = document.getElementById('precio-lista');
-    const mesRows = document.querySelectorAll('.mes-row strong');
+    const tasaAnualEl = document.getElementById('tasa-anual');
+    const mesVals = document.querySelectorAll('.mes-val');
+    const btnPdf = document.getElementById('btn-pdf');
 
     let vehiculosData = {};
 
@@ -80,6 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lastPrecio && lastPrecio !== "$0.00") {
                 data[tipo][lastUnidad][lastVersion].precio = lastPrecio;
             }
+            if (lastTasa) {
+                data[tipo][lastUnidad][lastVersion].tasa = lastTasa;
+            }
 
             const engMap = data[tipo][lastUnidad][lastVersion].enganchesMap;
             if (!engMap[lastEnganche]) {
@@ -114,6 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
         const categorias = Object.keys(vehiculosData).filter(cat => Object.keys(vehiculosData[cat]).length > 0);
+
+        if (categorias.length === 0) {
+            selectTipo.innerHTML = '<option value="">No hay categorías</option>';
+            return;
+        }
 
         categorias.forEach(tipo => {
             const opt = document.createElement('option');
@@ -197,42 +207,41 @@ document.addEventListener('DOMContentLoaded', () => {
         const info = vehiculosData[tipoSel]?.[unidadSel]?.[versionSel];
         if (!info) {
             if (precioListaEl) precioListaEl.innerText = "$0.00";
-            if (mesRows) mesRows.forEach(r => r.innerText = "$0.00");
+            if (tasaAnualEl) tasaAnualEl.innerText = "12.99%";
+            if (mesVals) mesVals.forEach(r => r.innerText = "$0.00");
             return;
         }
 
-        if (precioListaEl) {
-            precioListaEl.innerText = info.precio || "$0.00";
-        }
+        if (precioListaEl) precioListaEl.innerText = info.precio || "$0.00";
+        if (tasaAnualEl) tasaAnualEl.innerText = info.tasa || "12.99%";
 
         const plazosMap = info.enganchesMap?.[engancheSel] || {};
         const plazos = ["72", "60", "48", "36"];
         plazos.forEach((p, idx) => {
-            if (mesRows[idx]) {
-                mesRows[idx].innerText = plazosMap[p] || "$0.00";
+            if (mesVals[idx]) {
+                mesVals[idx].innerText = plazosMap[p] || "$0.00";
             }
         });
     };
 
-    // Eventos limpios en cascada para que los selectores respondan al instante
-    if (selectTipo) {
-        selectTipo.addEventListener('change', () => {
-            cargarUnidades();
-        });
-    }
-    if (selectUnidad) {
-        selectUnidad.addEventListener('change', () => {
-            cargarVersiones();
-        });
-    }
-    if (selectVersion) {
-        selectVersion.addEventListener('change', () => {
-            cargarEnganches();
-        });
-    }
-    if (selectEnganche) {
-        selectEnganche.addEventListener('change', () => {
-            actualizarCalculos();
+    // Listeners limpios para los selectores
+    if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
+    if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
+    if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
+    if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
+
+    // Botón de descarga PDF
+    if (btnPdf) {
+        btnPdf.addEventListener('click', () => {
+            const elemento = document.querySelector('.cotizador-card');
+            const opciones = {
+                margin:       1,
+                filename:     'Cotizacion-KIA-Saltillo.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().from(elemento).set(opciones).save();
         });
     }
 
