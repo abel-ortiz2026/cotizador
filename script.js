@@ -115,11 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
         selectTipo.innerHTML = '';
         const categorias = Object.keys(vehiculosData).filter(cat => Object.keys(vehiculosData[cat]).length > 0);
 
-        if (categorias.length === 0) {
-            selectTipo.innerHTML = '<option value="">No hay categorías</option>';
-            return;
-        }
-
         categorias.forEach(tipo => {
             const opt = document.createElement('option');
             opt.value = tipo;
@@ -219,10 +214,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    if (selectTipo) selectTipo.addEventListener('change', cargarUnidades);
-    if (selectUnidad) selectUnidad.addEventListener('change', cargarVersiones);
-    if (selectVersion) selectVersion.addEventListener('change', cargarEnganches);
-    if (selectEnganche) selectEnganche.addEventListener('change', actualizarCalculos);
+    // Eventos limpios en cascada para que los selectores respondan al instante
+    if (selectTipo) {
+        selectTipo.addEventListener('change', () => {
+            cargarUnidades();
+        });
+    }
+    if (selectUnidad) {
+        selectUnidad.addEventListener('change', () => {
+            cargarVersiones();
+        });
+    }
+    if (selectVersion) {
+        selectVersion.addEventListener('change', () => {
+            cargarEnganches();
+        });
+    }
+    if (selectEnganche) {
+        selectEnganche.addEventListener('change', () => {
+            actualizarCalculos();
+        });
+    }
 
     cargarDatosDesdeSheet();
 });
