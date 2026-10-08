@@ -48,16 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let ultimaTasa = "12.99%";
         let ultimoPrecio = "\$0.00";
 
-        // Mapeo auxiliar para recordar el precio y tasa oficiales de cada versión mientras leemos el CSV
-        let preciosPorVersion = {};
-        let tasasPorVersion = {};
-
-        // Primera pasada: recolectar precios y tasas reales por cada versión (las celdas que no estén vacías)
         rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
+
             const unidadVal = (cols[2] || "").trim();
             const versionVal = (cols[3] || "").trim();
             const tasaVal = (cols[4] || "").trim();
+            const engancheVal = (cols[5] || "").trim();
+            const plazoVal = (cols[6] || "").trim();
+            const mensualidadVal = (cols[7] || "").trim();
             const precioVal = (cols[8] || "").trim();
 
             const unidadUpper = unidadVal.toUpperCase();
@@ -69,57 +68,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 ultimaVersion = versionUpper;
             }
 
-            const claveVersion = `${ultimaUnidad}_${ultimaVersion}`;
-
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2) {
-                ultimoPrecio = precioVal;
-                preciosPorVersion[claveVersion] = precioVal;
-            }
-
-            if (tasaVal && !tasaVal.toUpperCase().includes("TASA")) {
+            // Si la fila trae una tasa explícita, actualizarla
+            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
                 ultimaTasa = tasaVal;
-                tasasPorVersion[claveVersion] = tasaVal;
             }
-        });
 
-        // Segunda pasada: armar la estructura completa de enganches y plazos
-        ultimaUnidad = "";
-        ultimaVersion = "";
-
-        rows.forEach((cols) => {
-            if (!cols || cols.length < 8) return;
-
-            const unidadVal = (cols[2] || "").trim();
-            const versionVal = (cols[3] || "").trim();
-            const engancheVal = (cols[5] || "").trim();
-            const plazoVal = (cols[6] || "").trim();
-            const mensualidadVal = (cols[7] || "").trim();
-
-            const unidadUpper = unidadVal.toUpperCase();
-            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
-                ultimaUnidad = unidadUpper;
-            }
-            const versionUpper = versionVal.toUpperCase();
-            if (versionUpper && !versionUpper.includes("VERSION")) {
-                ultimaVersion = versionUpper;
+            // Si la fila trae un precio explícito (y no el encabezado), actualizarlo inmediatamente
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                ultimoPrecio = precioVal;
             }
 
             if (!ultimaUnidad || !ultimaVersion || !engancheVal || !plazoVal || !mensualidadVal) return;
             if (engancheVal.toUpperCase().includes("ENGANCHE")) return;
 
             const tipo = clasificarVehiculo(ultimaUnidad);
-            const claveVersion = `${ultimaUnidad}_${ultimaVersion}`;
-
-            const precioOficial = preciosPorVersion[claveVersion] || "\$0.00";
-            const tasaOficial = tasasPorVersion[claveVersion] || "12.99%";
 
             if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
             if (!data[tipo][ultimaUnidad][ultimaVersion]) {
                 data[tipo][ultimaUnidad][ultimaVersion] = {
-                    precio: precioOficial,
-                    tasa: tasaOficial,
+                    precio: ultimoPrecio,
+                    tasa: ultimaTasa,
                     enganchesMap: {}
                 };
+            }
+
+            // Forzar siempre a que la versión guarde el precio y la tasa más actual y correcta detectada
+            if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
+                data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
+            }
+            if (ultimaTasa) {
+                data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
             }
 
             const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
