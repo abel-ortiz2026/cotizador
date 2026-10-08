@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // URL oficial de tu Aplicación Web de Google Apps Script con control anti-caché
-    const SHEET_CSV_URL = 'https://script.google.com/macros/s/AKfycbvHkFKCmKo2mXfGLozes1Fp8spYQph1IFnN2nxq98cev7_yX1ZEf9R4UWChSntYJ03hw/exec?_t=' + Date.now();
+    // Nueva URL de tu Aplicación Web de Google Apps Script con control anti-caché
+    const SHEET_CSV_URL = 'https://script.google.com/macros/s/AKfycbzeC7H45sP8tR65AnoOWXGzwnsth9f7MgbWykJOtfSiVRYn9rUIgkzte282XaLfIsJ4lg/exec?_t=' + Date.now();
 
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
@@ -11,7 +11,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const mesRows = document.querySelectorAll('.mes-row strong');
 
     let vehiculosData = {
-        "AUTOMÓVIL": {},
+        "AUTOMÓVIL": {
+            "K3 SEDAN": {
+                "L TM": {
+                    precio: "$750,000.00",
+                    tasa: "12.99%",
+                    enganchesMap: {
+                        "$63,511.95": { "72": "$5,197.51", "60": "$5,841.95", "48": "$6,826.91", "36": "$8,493.94" },
+                        "$92,989.79": { "72": "$4,547.82", "60": "$5,111.62", "48": "$5,973.55", "36": "$7,432.19" },
+                        "$122,467.64": { "72": "$3,781.75", "60": "$4,268.83", "48": "$5,011.43", "36": "$6,265.31" }
+                    }
+                },
+                "LX TM": {
+                    precio: "$358,800.00",
+                    tasa: "12.99%",
+                    enganchesMap: {
+                        "$56,690.50": { "72": "$6,112.31", "60": "$6,870.06", "48": "$8,028.51", "36": "$9,988.94" },
+                        "$91,356.68": { "72": "$5,348.27", "60": "$6,011.30", "48": "$7,024.94", "36": "$8,735.68" }
+                    }
+                }
+            }
+        },
         "SUV": {},
         "HÍBRIDOS Y ELÉCTRICOS": {}
     };
@@ -136,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } catch (err) {
-            console.error("Error al obtener datos del Apps Script:", err);
+            console.error("Usando respaldo local por error en la red:", err);
         }
 
         poblarSelectTipos();
