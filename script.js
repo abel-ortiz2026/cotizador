@@ -45,9 +45,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let unidadActual = "";
         let versionActual = "";
-        let precioActual = "\$0.00";
-        let tasaActual = "12.99%";
+        
+        // Diccionarios maestros para capturar exclusivamente el primer precio y tasa oficiales de cada versión
+        let preciosMaestros = {};
+        let tasasMaestros = {};
+
+        // PASADA 1: Capturar los datos principales y fijos de cada versión
+        rows.forEach((cols) => {
+            if (!cols || cols.length < 8) return;
+
+            const unidadVal = (cols[2] || "").trim();
+            const versionVal = (cols[3] || "").trim();
+            const tasaVal = (cols[4] || "").trim();
+            const precioVal = (cols[8] || "").trim();
+
+            const unidadUpper = unidadVal.toUpperCase();
+            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
+                unidadActual = unidadUpper;
+            }
+
+            const versionUpper = versionVal.toUpperCase();
+            if (versionUpper && !versionUpper.includes("VERSION")) {
+                versionActual = versionUpper;
+            }
+
+            if (!unidadActual || !versionActual) return;
+            const clave = `${unidadActual}_${versionActual}`;
+
+            // Guardar el primer precio válido que aparezca para esta versión (ej. \$750,000.00) y bloquear cambios posteriores erróneos
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00" && !preciosMaestros[clave]) {
+                preciosMaestros[clave] = precioVal;
+            }
+
+            // Guardar la tasa válida que corresponda
+            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%") && !tasasMaestros[clave]) {
+                tasasMaestros[clave] = tasaVal;
+            }
+        });
+
+        // PASADA 2: Construir la estructura completa de enganches y mensualidades para todos los vehículos
+        unidadActual = "";
+        versionActual = "";
         let engancheActual = "";
+        let tasaFilaActual = "12.99%";
 
         rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
@@ -58,51 +98,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const engancheVal = (cols[5] || "").trim();
             const plazoVal = (cols[6] || "").trim();
             const mensualidadVal = (cols[7] || "").trim();
-            const precioVal = (cols[8] || "").trim();
 
-            // 1. Herencia de Unidad
             const unidadUpper = unidadVal.toUpperCase();
             if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
                 unidadActual = unidadUpper;
             }
 
-            // 2. Herencia de Versión
             const versionUpper = versionVal.toUpperCase();
             if (versionUpper && !versionUpper.includes("VERSION")) {
                 versionActual = versionUpper;
             }
 
-            // 3. Herencia de Precio
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
-                precioActual = precioVal;
-            }
-
-            // 4. Herencia de Tasa
             if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
-                tasaActual = tasaVal;
+                tasaFilaActual = tasaVal;
             }
 
-            // 5. Herencia de Enganche
             if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
                 engancheActual = engancheVal;
             }
 
-            // Si faltan datos vitales para las mensualidades, saltamos esta línea específica
             if (!unidadActual || !versionActual || !engancheActual || !plazoVal || !mensualidadVal) return;
 
             const tipo = clasificarVehiculo(unidadActual);
+            const clave = `${unidadActual}_${versionActual}`;
+
+            const precioOficial = preciosMaestros[clave] || "\$0.00";
+            const tasaOficial = tasasMaestros[clave] || tasaFilaActual;
 
             if (!data[tipo][unidadActual]) data[tipo][unidadActual] = {};
             if (!data[tipo][unidadActual][versionActual]) {
                 data[tipo][unidadActual][versionActual] = {
-                    precio: precioActual,
-                    tasa: tasaActual,
+                    precio: precioOficial,
+                    tasa: tasaOficial,
                     enganchesMap: {}
                 };
-            } else {
-                // Mantener siempre el precio y tasa vigentes del bloque
-                if (precioActual !== "\$0.00") data[tipo][unidadActual][versionActual].precio = precioActual;
-                if (tasaActual) data[tipo][unidadActual][versionActual].tasa = tasaActual;
             }
 
             const engMap = data[tipo][unidadActual][versionActual].enganchesMap;
