@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELECTRICO") || u.includes("PHEV")) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
-        if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV") || u.includes("EV")) {
+        if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
             return "SUV";
         }
         return "AUTOMÓVIL";
@@ -45,46 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let unidadActual = "";
         let versionActual = "";
-        
-        let preciosMaestros = {};
-        let tasasMaestros = {};
-
-        // PASADA 1: Capturar precios y tasas oficiales por versión
-        rows.forEach((cols) => {
-            if (!cols || cols.length < 8) return;
-
-            const unidadVal = (cols[2] || "").trim();
-            const versionVal = (cols[3] || "").trim();
-            const tasaVal = (cols[4] || "").trim();
-            const precioVal = (cols[8] || "").trim();
-
-            const unidadUpper = unidadVal.toUpperCase();
-            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
-                unidadActual = unidadUpper;
-            }
-
-            const versionUpper = versionVal.toUpperCase();
-            if (versionUpper && !versionUpper.includes("VERSION")) {
-                versionActual = versionUpper;
-            }
-
-            if (!unidadActual || !versionActual) return;
-            const clave = `${unidadActual}_${versionActual}`;
-
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00" && !preciosMaestros[clave]) {
-                preciosMaestros[clave] = precioVal;
-            }
-
-            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%") && !tasasMaestros[clave]) {
-                tasasMaestros[clave] = tasaVal;
-            }
-        });
-
-        // PASADA 2: Construir la estructura completa agrupada por Tipos de Vehículo
-        unidadActual = "";
-        versionActual = "";
+        let tasaActual = "12.99%";
+        let precioActual = "\$0.00";
         let engancheActual = "";
-        let tasaFilaActual = "12.99%";
+
+        // Mapa auxiliar para almacenar la información completa por versión
+        let registrosTemp = {};
 
         rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
@@ -95,43 +61,58 @@ document.addEventListener('DOMContentLoaded', () => {
             const engancheVal = (cols[5] || "").trim();
             const plazoVal = (cols[6] || "").trim();
             const mensualidadVal = (cols[7] || "").trim();
+            const precioVal = (cols[8] || "").trim();
 
+            // Actualizar unidad si viene presente
             const unidadUpper = unidadVal.toUpperCase();
             if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
                 unidadActual = unidadUpper;
             }
 
+            // Actualizar versión si viene presente
             const versionUpper = versionVal.toUpperCase();
             if (versionUpper && !versionUpper.includes("VERSION")) {
                 versionActual = versionUpper;
             }
 
+            // Actualizar tasa si viene presente y válida
             if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
-                tasaFilaActual = tasaVal;
+                tasaActual = tasaVal;
             }
 
+            // Actualizar precio si viene presente y válido
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                precioActual = precioVal;
+            }
+
+            // Actualizar enganche si viene presente
             if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
                 engancheActual = engancheVal;
             }
 
             if (!unidadActual || !versionActual || !engancheActual || !plazoVal || !mensualidadVal) return;
 
-            const tipo = clasificarVehiculo(unidadActual);
-            const clave = `${unidadActual}_${versionActual}`;
+            const claveVersion = `${unidadActual}_${versionActual}`;
 
-            const precioOficial = preciosMaestros[clave] || "\$0.00";
-            const tasaOficial = tasasMaestros[clave] || tasaFilaActual;
-
-            if (!data[tipo][unidadActual]) data[tipo][unidadActual] = {};
-            if (!data[tipo][unidadActual][versionActual]) {
-                data[tipo][unidadActual][versionActual] = {
-                    precio: precioOficial,
-                    tasa: tasaOficial,
+            if (!registrosTemp[claveVersion]) {
+                registrosTemp[claveVersion] = {
+                    unidad: unidadActual,
+                    version: versionActual,
+                    precio: precioActual,
+                    tasa: tasaActual,
                     enganchesMap: {}
                 };
+            } else {
+                // Si ya existe pero tenemos un precio o tasa más reciente/válida, la actualizamos
+                if (precioActual && precioActual !== "\$0.00") {
+                    registrosTemp[claveVersion].precio = precioActual;
+                }
+                if (tasaActual) {
+                    registrosTemp[claveVersion].tasa = tasaActual;
+                }
             }
 
-            const engMap = data[tipo][unidadActual][versionActual].enganchesMap;
+            const engMap = registrosTemp[claveVersion].enganchesMap;
             if (!engMap[engancheActual]) {
                 engMap[engancheActual] = {};
             }
@@ -140,6 +121,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (plazoNum) {
                 engMap[engancheActual][plazoNum] = mensualidadVal;
             }
+        });
+
+        // Distribuir los registros procesados en sus categorías correspondientes
+        Object.values(registrosTemp).forEach(item => {
+            const tipo = clasificarVehiculo(item.unidad);
+            if (!data[tipo][item.unidad]) {
+                data[tipo][item.unidad] = {};
+            }
+            data[tipo][item.unidad][item.version] = {
+                precio: item.precio,
+                tasa: item.tasa,
+                enganchesMap: item.enganchesMap
+            };
         });
 
         vehiculosData = data;
