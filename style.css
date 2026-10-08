@@ -1,599 +1,209 @@
-/* ==================== VARIABLES Y RESET ==================== */
-:root {
-    --bg-main: #000000;
-    --bg-card: #141414;
-    --bg-input: #1f1f1f;
-    --bg-modal: #1e1e24;
-    --text-white: #ffffff;
-    --text-gray: #a0a0a0;
-    --border-color: #2a2a2a;
-    --kia-red: #d3112b;
-    --accent-green: #10b981;
-    --alert-yellow-bg: #2a2205;
-    --alert-yellow-text: #eab308;
-}
-
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-    background-color: var(--bg-main);
-    color: var(--text-white);
+    background-color: #0b0b0b;
+    color: #ffffff;
     display: flex;
     justify-content: center;
+    align-items: center;
     min-height: 100vh;
+    padding: 20px;
 }
 
-/* ==================== UI PRINCIPAL ==================== */
-.app-wrapper {
+.cotizador-container {
     width: 100%;
-    max-width: 500px;
-    padding: 30px 15px;
+    max-width: 480px;
+    background: #121212;
+    border-radius: 12px;
+    border: 1px solid #222;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
 }
 
-.app-header {
+.cotizador-header {
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
 
-.brand-title {
-    color: var(--kia-red);
+.cotizador-header h2 {
+    color: #bb162b;
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+}
+
+.cotizador-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.cotizador-header p {
     font-size: 12px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 5px;
+    color: #888;
 }
 
-.main-title {
-    font-size: 26px;
-    font-weight: bold;
-    margin-bottom: 8px;
+.cotizador-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-.asesor-info {
-    color: var(--text-gray);
-    font-size: 13px;
-}
-
-.card-container {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 25px;
-}
-
-/* ==================== FORMULARIOS Y CAJAS ==================== */
 .form-group {
-    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .form-group label {
-    display: block;
-    color: var(--text-gray);
     font-size: 11px;
-    text-transform: uppercase;
-    margin-bottom: 6px;
     font-weight: 600;
+    color: #aaa;
+    letter-spacing: 1px;
 }
 
-.readonly-input {
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-color);
-    padding: 14px;
+.form-group select {
+    background: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #333;
+    padding: 12px;
     border-radius: 8px;
-    font-size: 15px;
-    font-weight: 500;
-}
-
-.input-bold {
-    font-weight: bold;
-    font-size: 18px;
-}
-
-.interactive-input {
-    width: 100%;
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-color);
-    padding: 14px;
-    border-radius: 8px;
-    color: var(--text-white);
-    font-size: 15px;
+    font-size: 14px;
     outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
 }
-.interactive-input:focus { border-color: #555; }
 
-.row-flex {
+.form-group select:focus {
+    border-color: #bb162b;
+}
+
+.precio-box, .tasa-box {
+    background: #181818;
+    padding: 12px 16px;
+    border-radius: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 10px;
+    border: 1px solid #262626;
 }
 
-.highlight-bg {
-    background-color: transparent;
-    border-top: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
-    margin: 20px 0;
+.precio-box span, .tasa-box span {
+    font-size: 13px;
+    color: #aaa;
 }
 
-.text-green { color: var(--accent-green); }
-.text-red { color: var(--kia-red); }
-.text-muted { color: var(--text-gray); }
+.precio-box strong {
+    font-size: 20px;
+    color: #ffffff;
+}
 
-.warning-box {
-    background-color: var(--alert-yellow-bg);
-    color: var(--alert-yellow-text);
-    padding: 12px;
-    border: 1px solid #42350a;
-    border-radius: 8px;
+.tasa-box strong {
+    font-size: 14px;
+    color: #2ecc71;
+}
+
+.alerta-box {
+    background: rgba(241, 196, 15, 0.1);
+    border: 1px solid rgba(241, 196, 15, 0.3);
+    color: #f1c40f;
+    padding: 10px;
+    border-radius: 6px;
     font-size: 12px;
-    margin-bottom: 20px;
+    text-align: center;
     font-weight: 600;
 }
 
-/* ==================== MENSUALIDADES ==================== */
-.mensualidades-section {
-    margin-top: 25px;
+.mensualidades-seccion {
+    background: #181818;
+    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid #262626;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.mensualidades-section label {
-    color: var(--text-gray);
-    font-size: 11px;
-    font-weight: bold;
-    display: block;
-    margin-bottom: 15px;
+.mensualidades-seccion h3 {
+    font-size: 12px;
+    color: #888;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
 }
 
 .mes-row {
     display: flex;
     justify-content: space-between;
-    padding: 14px 10px;
-    border-bottom: 1px solid var(--border-color);
     font-size: 14px;
+    color: #ccc;
+    border-bottom: 1px solid #222;
+    padding-bottom: 6px;
 }
-.mes-row:last-child { border-bottom: none; margin-bottom: 25px; }
 
-/* ==================== BOTONES ==================== */
-.btn {
-    width: 100%;
-    padding: 15px;
-    border-radius: 10px;
+.mes-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.mes-row strong {
+    color: #ffffff;
     font-size: 15px;
+}
+
+.acciones-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.btn-contacto {
+    background: #ffffff;
+    color: #000000;
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn-contacto:hover {
+    background: #e0e0e0;
+}
+
+.btn-pdf {
+    background: #bb162b;
+    color: #ffffff;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    border: none;
-    margin-bottom: 12px;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
-    transition: opacity 0.2s;
+    gap: 8px;
+    transition: background 0.2s;
 }
-.btn:hover { opacity: 0.9; }
 
-.btn-white { background-color: #ffffff; color: #000000; }
-.btn-dark { background-color: #1a1a1a; color: #ffffff; border: 1px solid #333; }
-.btn-whatsapp { background-color: #128c7e; color: #ffffff; }
-.btn-email { background-color: #333333; color: #ffffff; }
-.btn-pdf-red { background-color: #d32f2f; color: #ffffff; }
+.btn-pdf:hover {
+    background: #961122;
+}
 
-.footer-terms {
+.cotizador-footer {
     text-align: center;
-    color: #555;
-    font-size: 11px;
-    margin-top: 25px;
+    margin-top: 16px;
 }
 
-/* ==================== MODAL ==================== */
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.85);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
-}
-
-.modal-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.modal-content {
-    background-color: var(--bg-modal);
-    width: 90%;
-    max-width: 400px;
-    border-radius: 16px;
-    padding: 25px;
-    position: relative;
-    border: 1px solid #333;
-}
-
-.close-modal {
-    position: absolute;
-    top: 15px; right: 15px;
-    background: none; border: none;
-    color: #888; font-size: 20px;
-    cursor: pointer;
-}
-
-.modal-title { font-size: 20px; text-align: center; margin-bottom: 5px; }
-.modal-subtitle { font-size: 12px; color: var(--text-gray); text-align: center; margin-bottom: 25px; }
-
-.summary-box {
-    background-color: rgba(255,255,255,0.05);
-    padding: 15px;
-    border-radius: 8px;
-    margin: 20px 0;
-    font-size: 13px;
-    line-height: 1.6;
-}
-.summary-box p { display: flex; justify-content: space-between; margin-bottom: 5px; }
-
-/* ==================== ÁREA PARA GENERACIÓN DE PDF ==================== */
-
-/* Oculto por defecto en la página */
-#pdf-template-container {
-    display: none;
-}
-
-/* Clase que activa el JS al momento exacto de capturar el PDF */
-#pdf-template-container.pdf-rendering {
-    display: block !important;
-    position: absolute !important;
-    left: -9999px !important; /* Fuera de la vista del usuario pero renderizado en el DOM */
-    top: 0 !important;
-    width: 750px !important;
-    background-color: #ffffff !important;
-    color: #111111 !important;
-    padding: 30px !important;
-    font-family: 'Segoe UI', Arial, sans-serif !important;
-}
-
-#pdf-template-container.pdf-rendering .pdf-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-#pdf-template-container.pdf-rendering .pdf-title-area h1 { 
-    font-size: 24px; 
-    font-weight: bold; 
-    margin-bottom: 5px; 
-    color: #000000 !important;
-}
-
-#pdf-template-container.pdf-rendering .pdf-title-area p { 
-    font-size: 14px; 
-    color: #555555 !important; 
-}
-
-#pdf-template-container.pdf-rendering .pdf-info-area { 
-    text-align: right; 
-    font-size: 12px; 
-    line-height: 1.6; 
-    color: #333333 !important;
-}
-
-#pdf-template-container.pdf-rendering .pdf-divider {
-    border: none; 
-    border-top: 2px solid #111111; 
-    margin: 15px 0 25px 0;
-}
-
-#pdf-template-container.pdf-rendering .pdf-section-title {
-    font-size: 16px; 
-    font-weight: bold; 
-    margin-bottom: 15px; 
-    margin-top: 25px;
-    color: #000000 !important;
-}
-
-#pdf-template-container.pdf-rendering .pdf-table {
-    width: 100%; 
-    border-collapse: collapse; 
-    font-size: 13px;
-    color: #222222 !important;
-}
-
-#pdf-template-container.pdf-rendering .pdf-table td,
-#pdf-template-container.pdf-rendering .pdf-table th { 
-    padding: 10px 5px; 
-    border-bottom: 1px solid #e0e0e0; 
-}
-
-#pdf-template-container.pdf-rendering .text-gray { color: #555555 !important; }
-#pdf-template-container.pdf-rendering .text-right { text-align: right; }
-#pdf-template-container.pdf-rendering .fw-bold { font-weight: bold; }
-#pdf-template-container.pdf-rendering .text-teal { color: #00897b !important; }
-
-#pdf-template-container.pdf-rendering .pdf-observacion {
-    background-color: #fff3cd !important;
-    color: #856404 !important;
-    padding: 12px 15px;
-    border-radius: 5px;
-    margin-top: 20px;
-    font-size: 13px;
-    border: 1px solid #ffeeba;
-}
-
-#pdf-template-container.pdf-rendering .pdf-table-mensualidades th {
-    padding: 10px 5px; 
-    border-bottom: 2px solid #333333; 
-    font-size: 13px; 
-    font-weight: bold;
-    color: #000000 !important;
-}
-
-#pdf-template-container.pdf-rendering .pdf-table-mensualidades .highlight-row td {
-    background-color: #f2f2f2 !important;
-}
-
-#pdf-template-container.pdf-rendering .pdf-footer {
-    margin-top: 40px; 
-    text-align: center; 
-    font-size: 10px; 
-    color: #777777 !important;
-}
-
-/* ==================== CONFIGURACIÓN DE IMPRESIÓN / PDF ==================== */
-
-/* Ocultar la plantilla del PDF de la pantalla normal */
-#pdf-template-container {
-    display: none;
-}
-
-/* Reglas ejecutadas únicamente al dar clic en Imprimir/Guardar PDF */
-@media print {
-    /* Ocultar toda la app web oscura y modales */
-    body * {
-        visibility: hidden !important;
-    }
-
-    /* Mostrar únicamente el contenedor del PDF */
-    #pdf-template-container, 
-    #pdf-template-container * {
-        visibility: visible !important;
-    }
-
-    #pdf-template-container {
-        display: block !important;
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        background-color: #ffffff !important;
-        color: #000000 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    .pdf-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
-    }
-
-    .pdf-title-area h1 { 
-        font-size: 22pt; 
-        font-weight: bold; 
-        margin-bottom: 5px; 
-        color: #000000 !important;
-    }
-
-    .pdf-title-area p { 
-        font-size: 11pt; 
-        color: #555555 !important; 
-    }
-
-    .pdf-info-area { 
-        text-align: right; 
-        font-size: 10pt; 
-        line-height: 1.5; 
-        color: #333333 !important;
-    }
-
-    .pdf-divider {
-        border: none; 
-        border-top: 2px solid #111111; 
-        margin: 15px 0 20px 0;
-    }
-
-    .pdf-section-title {
-        font-size: 13pt; 
-        font-weight: bold; 
-        margin-bottom: 12px; 
-        margin-top: 20px;
-        color: #000000 !important;
-    }
-
-    .pdf-table {
-        width: 100%; 
-        border-collapse: collapse; 
-        font-size: 10pt;
-        color: #222222 !important;
-    }
-
-    .pdf-table td,
-    .pdf-table th { 
-        padding: 8px 5px; 
-        border-bottom: 1px solid #e0e0e0; 
-    }
-
-    .text-gray { color: #555555 !important; }
-    .text-right { text-align: right; }
-    .fw-bold { font-weight: bold; }
-    .text-teal { color: #00897b !important; }
-
-    .pdf-observacion {
-        background-color: #fff3cd !important;
-        color: #856404 !important;
-        padding: 10px 12px;
-        border-radius: 5px;
-        margin-top: 15px;
-        font-size: 10pt;
-        border: 1px solid #ffeeba;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    .pdf-table-mensualidades th {
-        padding: 8px 5px; 
-        border-bottom: 2px solid #333333; 
-        font-size: 10pt; 
-        font-weight: bold;
-        color: #000000 !important;
-    }
-
-    .pdf-table-mensualidades .highlight-row td {
-        background-color: #f2f2f2 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    .pdf-footer {
-        margin-top: 30px; 
-        text-align: center; 
-        font-size: 9pt; 
-        color: #777777 !important;
-    }
-}
-/* ==================== ESTILOS EXACTOS DEL MODAL ==================== */
-.modal-overlay {
-    display: none; /* Oculto por defecto */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.75);
-    z-index: 99999;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Esta clase la activa JavaScript al hacer clic */
-.modal-overlay.active {
-    display: flex !important;
-}
-
-.modal-content {
-    background-color: #1a1a1a;
-    color: #ffffff;
-    padding: 30px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 450px;
-    position: relative;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-    border: 1px solid #333;
-}
-
-.close-modal {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    font-size: 22px;
-    cursor: pointer;
-}
-
-.modal-title {
-    margin-top: 0;
-    font-size: 1.5rem;
-}
-
-.modal-subtitle {
-    color: #aaa;
-    font-size: 0.9rem;
-    margin-bottom: 20px;
-}
-
-.summary-box {
-    background-color: #252525;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 15px 0;
-    font-size: 0.9rem;
-}
-
-.summary-box p {
-    margin: 5px 0;
-}
-/* =========================================================================
-   CONFIGURACIÓN DE IMPRESIÓN (PDF EXACTO DE 1 HOJA)
-   ========================================================================= */
-@media print {
-    /* Forzar tamaño de página A4/Carta sin hojas extras */
-    @page {
-        size: letter portrait;
-        margin: 10mm;
-    }
-
-    /* Ocultar absolutamente todo excepto la plantilla del PDF */
-    body * {
-        visibility: hidden !important;
-    }
-
-    /* Ocultar la app completa y el modal para evitar saltos de página */
-    .app-wrapper,
-    .modal-overlay,
-    header,
-    footer {
-        display: none !important;
-    }
-
-    /* Hacer visible únicamente la plantilla de PDF y forzar su posición */
-    #pdf-template-container,
-    #pdf-template-container * {
-        visibility: visible !important;
-    }
-
-    #pdf-template-container {
-        display: block !important;
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-        background: #ffffff !important;
-        color: #000000 !important;
-        page-break-after: avoid !important;
-        page-break-before: avoid !important;
-        page-break-inside: avoid !important;
-    }
-
-    /* Ajustar tamaños internos para asegurar que entre en 1 hoja */
-    .pdf-header {
-        margin-bottom: 15px !important;
-    }
-
-    .pdf-table {
-        width: 100% !important;
-        margin-bottom: 15px !important;
-        font-size: 13px !important;
-    }
-
-    .pdf-section-title {
-        font-size: 15px !important;
-        margin-top: 15px !important;
-        margin-bottom: 8px !important;
-    }
-
-    .pdf-footer {
-        margin-top: 20px !important;
-        font-size: 10px !important;
-    }
+.cotizador-footer p {
+    font-size: 10px;
+    color: #666;
 }
