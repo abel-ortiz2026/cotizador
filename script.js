@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tiposDisponibles = Object.keys(vehiculosData).filter(t => Object.keys(vehiculosData[t]).length > 0);
 
         if (tiposDisponibles.length === 0) {
-            selectTipo.innerHTML = '<option value="">Revisa la consola (F12)</option>';
+            selectTipo.innerHTML = '<option value="">No hay datos disponibles</option>';
             return;
         }
 
@@ -60,12 +60,16 @@ document.addEventListener('DOMContentLoaded', () => {
         selectUnidad.innerHTML = '';
         const unidades = vehiculosData[tipoSel] ? Object.keys(vehiculosData[tipoSel]) : [];
 
-        unidades.forEach(u => {
-            const opt = document.createElement('option');
-            opt.value = u;
-            opt.textContent = u;
-            selectUnidad.appendChild(opt);
-        });
+        if (unidades.length === 0) {
+            selectUnidad.innerHTML = '<option value="">Sin unidades</option>';
+        } else {
+            unidades.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u;
+                opt.textContent = u;
+                selectUnidad.appendChild(opt);
+            });
+        }
         llenarVersiones();
     };
 
@@ -77,12 +81,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const versiones = vehiculosData[tipoSel]?.[unidadSel] ? Object.keys(vehiculosData[tipoSel][unidadSel]) : [];
 
-        versiones.forEach(v => {
-            const opt = document.createElement('option');
-            opt.value = v;
-            opt.textContent = v;
-            selectVersion.appendChild(opt);
-        });
+        if (versiones.length === 0) {
+            selectVersion.innerHTML = '<option value="">Sin versiones</option>';
+        } else {
+            versiones.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                selectVersion.appendChild(opt);
+            });
+        }
         llenarEnganches();
     };
 
@@ -96,12 +104,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const info = vehiculosData[tipoSel]?.[unidadSel]?.[versionSel];
         const enganches = (info && info.enganchesMap) ? Object.keys(info.enganchesMap) : [];
 
-        enganches.forEach(e => {
-            const opt = document.createElement('option');
-            opt.value = e;
-            opt.textContent = e;
-            selectEnganche.appendChild(opt);
-        });
+        if (enganches.length === 0) {
+            selectEnganche.innerHTML = '<option value="">Sin enganches</option>';
+        } else {
+            enganches.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e;
+                opt.textContent = e;
+                selectEnganche.appendChild(opt);
+            });
+        }
         actualizarPantalla();
     };
 
@@ -114,16 +126,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const enganche = selectEnganche.value;
 
         const info = vehiculosData[tipo]?.[unidad]?.[version];
-        if (!info) return;
+        if (!info) {
+            if (precioListaEl) precioListaEl.innerText = "\$0.00";
+            if (tasaAnualEl) tasaAnualEl.innerText = "12.99%";
+            if (mesVals) mesVals.forEach(r => r.innerText = "\$0.00");
+            return;
+        }
 
-        if (precioListaEl) precioListaEl.innerText = info.precio || "$0.00";
+        if (precioListaEl) precioListaEl.innerText = info.precio || "\$0.00";
         if (tasaAnualEl) tasaAnualEl.innerText = info.tasa || "12.99%";
 
         const plazosMap = info.enganchesMap?.[enganche] || {};
         const plazos = ["72", "60", "48", "36"];
         plazos.forEach((p, idx) => {
             if (mesVals[idx]) {
-                mesVals[idx].innerText = plazosMap[p] || "$0.00";
+                mesVals[idx].innerText = plazosMap[p] || "\$0.00";
             }
         });
     };
@@ -134,8 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
         skipEmptyLines: true,
         complete: (results) => {
             const rows = results.data;
-            console.log("Filas recibidas del CSV:", rows); // <-- Revisa esto en F12
-
             let data = {
                 "AUTOMÓVIL": {},
                 "SUV": {},
@@ -145,50 +160,66 @@ document.addEventListener('DOMContentLoaded', () => {
             let ultimaUnidad = "";
             let ultimaVersion = "";
             let ultimaTasa = "12.99%";
-            let ultimoPrecio = "$700,000.00";
+            let ultimoPrecio = "\$0.00";
+            let ultimoEnganche = "";
 
-            rows.forEach((cols, index) => {
-                if (!cols || cols.length === 0) return;
+            rows.forEach((cols) => {
+                if (!cols || cols.length < 8) return;
 
-                // Buscamos dinámicamente texto en las columnas de la fila para no depender de un índice fijo
-                let textoUnidad = "";
-                let textoVersion = "";
-                let textoEnganche = "";
-                let textoPlazo = "";
-                let textoMensualidad = "";
-                let textoPrecio = "";
+                const unidadVal = (cols[2] || "").trim();    // Columna C: Unidad
+                const versionVal = (cols[3] || "").trim();   // Columna D: Versión
+                const tasaVal = (cols[4] || "").trim();      // Columna E: Tasa
+                const engancheVal = (cols[5] || "").trim();  // Columna F: Enganche
+                const plazoVal = (cols[6] || "").trim();     // Columna G: Plazo
+                const mensualidadVal = (cols[7] || "").trim(); // Columna H: Mensualidad
+                const precioVal = (cols[8] || "").trim();    // Columna I: Precio
 
-                cols.forEach(cell => {
-                    const c = (cell || "").trim();
-                    if (!c) return;
-                    if (c.toUpperCase().includes("K3") || c.toUpperCase().includes("SELTOS") || c.toUpperCase().includes("SPORTAGE") || c.toUpperCase().includes("SORENTO") || c.toUpperCase().includes("NIRO") || c.toUpperCase().includes("RIO") || c.toUpperCase().includes("FORTE")) {
-                        textoUnidad = c.toUpperCase();
-                    }
-                    if (c.toUpperCase().includes("TM") || c.toUpperCase().includes("TA") || c.toUpperCase().includes("EX") || c.toUpperCase().includes("LX") || c.toUpperCase().includes("GT")) {
-                        textoVersion = c.toUpperCase();
-                    }
-                    if (c.includes("$") && c.length > 5 && !c.includes("%")) {
-                        if (ultimoPrecio === "$700,000.00") textoPrecio = c;
-                        else textoEnganche = c;
-                    }
-                    if (c.includes("%")) ultimaTasa = c;
-                    if (c === "36" || c === "48" || c === "60" || c === "72") textoPlazo = c;
-                });
+                if (unidadVal && !unidadVal.toUpperCase().includes("COTIZACION") && !unidadVal.toUpperCase().includes("COTIZACIÓN") && !unidadVal.toUpperCase().includes("COTIZACIONES")) {
+                    ultimaUnidad = unidadVal.toUpperCase();
+                }
+                
+                if (versionVal && !versionVal.toUpperCase().includes("VERSION")) {
+                    ultimaVersion = versionVal.toUpperCase();
+                }
 
-                if (textoUnidad) ultimaUnidad = textoUnidad;
-                if (textoVersion) ultimaVersion = textoVersion;
-                if (textoPrecio && textoPrecio !== "$700,000.00") ultimoPrecio = textoPrecio;
+                if (tasaVal && tasaVal.includes("%")) {
+                    ultimaTasa = tasaVal;
+                }
+                if (engancheVal && engancheVal.includes("\$")) {
+                    ultimoEnganche = engancheVal;
+                }
+                if (precioVal && precioVal.includes("\$") && precioVal !== "\$0.00") {
+                    ultimoPrecio = precioVal;
+                }
 
-                if (!ultimaUnidad || !ultimaVersion) return;
+                if (!ultimaUnidad || !ultimaVersion || !ultimoEnganche || !plazoVal || !mensualidadVal) return;
 
                 const tipo = clasificarVehiculo(ultimaUnidad);
+
                 if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
                 if (!data[tipo][ultimaUnidad][ultimaVersion]) {
                     data[tipo][ultimaUnidad][ultimaVersion] = {
-                        precio: ultimoPrecio,
+                        precio: ultimoPrecio !== "\$0.00" ? ultimoPrecio : "\$750,000.00",
                         tasa: ultimaTasa,
                         enganchesMap: {}
                     };
+                }
+
+                if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
+                    data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
+                }
+                if (ultimaTasa) {
+                    data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
+                }
+
+                const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
+                if (!engMap[ultimoEnganche]) {
+                    engMap[ultimoEnganche] = {};
+                }
+
+                const plazoNum = plazoVal.replace(/[^0-9]/g, '');
+                if (plazoNum) {
+                    engMap[ultimoEnganche][plazoNum] = mensualidadVal;
                 }
             });
 
@@ -196,7 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
             llenarTipos();
         },
         error: (err) => {
-            console.error("Error CSV:", err);
+            console.error("Error al descargar el CSV:", err);
+            if (selectTipo) selectTipo.innerHTML = '<option value="">Error de carga</option>';
         }
     });
 
@@ -204,4 +236,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectUnidad) selectUnidad.addEventListener('change', llenarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', llenarEnganches);
     if (selectEnganche) selectEnganche.addEventListener('change', actualizarPantalla);
+
+    if (btnAbrirModal) {
+        btnAbrirModal.addEventListener('click', () => {
+            if (resumenUnidad) resumenUnidad.textContent = `Unidad: ${selectUnidad.value || '-'}`;
+            if (resumenVersion) resumenVersion.textContent = `Versión: ${selectVersion.value || '-'}`;
+            if (resumenEnganche) resumenEnganche.textContent = `Enganche: ${selectEnganche.value || '-'}`;
+            if (resumenMensualidad && mesVals[2]) resumenMensualidad.textContent = `Mensualidad (48m): ${mesVals[2].textContent}`;
+            if (modalContacto) modalContacto.style.display = 'flex';
+        });
+    }
+
+    if (btnCerrarModal) {
+        btnCerrarModal.addEventListener('click', () => {
+            if (modalContacto) modalContacto.style.display = 'none';
+        });
+    }
+
+    if (btnEnviarWsp) {
+        btnEnviarWsp.addEventListener('click', () => {
+            const nombre = inputNombre ? inputNombre.value.trim() : '';
+            const telefono = inputTelefono ? inputTelefono.value.trim() : '';
+            const unidad = selectUnidad.value || '-';
+            const version = selectVersion.value || '-';
+            const precio = precioListaEl ? precioListaEl.textContent : '-';
+            const enganche = selectEnganche.value || '-';
+            const mes48 = mesVals[2] ? mesVals[2].textContent : '-';
+
+            const mensaje = `Hola, mi nombre es *${nombre || 'Cliente'}* (Tel: ${telefono || 'No proporcionado'}). Me interesa la siguiente cotización:\n\n🚗 *Vehículo:* ${unidad} - ${version}\n💰 *Precio:* ${precio}\n📥 *Enganche:* ${enganche}\n📅 *Mensualidad (48 meses):* ${mes48}`;
+            window.open(`https://wa.me/528448067192?text=${encodeURIComponent(mensaje)}`, '_blank');
+        });
+    }
+
+    if (btnPdf) {
+        btnPdf.addEventListener('click', () => {
+            const elemento = document.querySelector('.cotizador-card');
+            const opciones = {
+                margin: 1,
+                filename: 'Cotizacion-KIA-Saltillo.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().from(elemento).set(opciones).save();
+        });
+    }
 });
