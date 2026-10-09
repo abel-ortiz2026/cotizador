@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const clasificarVehiculo = (unidad) => {
         const u = unidad.toUpperCase();
-        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELECTRICO") || u.includes("PHEV")) {
+        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELÉCTRICO") || u.includes("PHEV")) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
         if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
@@ -45,12 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let unidadActual = "";
         let versionActual = "";
-        let precioPorDefecto = "\$0.00";
-        let tasaPorDefecto = "12.99%";
-
-        // Primera pasada: recolectar el precio real y la tasa real que SÍ aparecen en el CSV
-        let mapaPrecios = {};
-        let mapaTasas = {};
+        let precioActual = "\$0.00";
+        let tasaActual = "12.99%";
+        let engancheActual = "";
 
         rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
@@ -58,65 +55,56 @@ document.addEventListener('DOMContentLoaded', () => {
             const uVal = (cols[2] || "").trim();
             const vVal = (cols[3] || "").trim();
             const tVal = (cols[4] || "").trim();
-            const pVal = (cols[8] || "").trim();
+            const eVal = (cols[5] || "").trim();
+            const pVal = (cols[6] || "").trim(); // plazo
+            const mVal = (cols[7] || "").trim(); // mensualidad
+            const precioVal = (cols[8] || "").trim(); // precio
 
+            // Detectar Unidad
             if (uVal && !uVal.toUpperCase().includes("COTIZACION") && !uVal.toUpperCase().includes("UNIDAD")) {
                 unidadActual = uVal.toUpperCase();
+                // Al cambiar de unidad, reiniciamos el precio y tasa base del bloque
+                precioActual = "\$0.00";
+                tasaActual = "12.99%";
             }
+
+            // Detectar Versión
             if (vVal && !vVal.toUpperCase().includes("VERSION")) {
                 versionActual = vVal.toUpperCase();
             }
 
-            if (!unidadActual || !versionActual) return;
-            const clave = `${unidadActual}_${versionActual}`;
-
-            if (pVal && !pVal.toUpperCase().includes("PRECIO") && pVal.length > 2 && pVal !== "\$0.00") {
-                mapaPrecios[clave] = pVal;
+            // Capturar precio si viene en la fila actual
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                precioActual = precioVal;
             }
+
+            // Capturar tasa si viene en la fila actual
             if (tVal && !tVal.toUpperCase().includes("TASA") && tVal.includes("%")) {
-                mapaTasas[clave] = tVal;
-            }
-        });
-
-        // Segunda pasada: Construcción limpia de la data
-        unidadActual = "";
-        versionActual = "";
-        let engancheActual = "";
-
-        rows.forEach((cols) => {
-            if (!cols || cols.length < 8) return;
-
-            const unidadVal = (cols[2] || "").trim();
-            const versionVal = (cols[3] || "").trim();
-            const engancheVal = (cols[5] || "").trim();
-            const plazoVal = (cols[6] || "").trim();
-            const mensualidadVal = (cols[7] || "").trim();
-
-            if (unidadVal && !unidadVal.toUpperCase().includes("COTIZACION") && !unidadVal.toUpperCase().includes("UNIDAD")) {
-                unidadActual = unidadVal.toUpperCase();
-            }
-            if (versionVal && !versionVal.toUpperCase().includes("VERSION")) {
-                versionActual = versionVal.toUpperCase();
-            }
-            if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
-                engancheActual = engancheVal;
+                tasaActual = tVal;
             }
 
-            if (!unidadActual || !versionActual || !engancheActual || !plazoVal || !mensualidadVal) return;
+            // Capturar enganche
+            if (eVal && !eVal.toUpperCase().includes("ENGANCHE")) {
+                engancheActual = eVal;
+            }
+
+            if (!unidadActual || !versionActual || !engancheActual || !pVal || !mVal) return;
 
             const tipo = clasificarVehiculo(unidadActual);
-            const clave = `${unidadActual}_${versionActual}`;
 
-            const precioFinal = mapaPrecios[clave] || "\$0.00";
-            const tasaFinal = mapaTasas[clave] || "12.99%";
-
-            if (!data[tipo][unidadActual]) data[tipo][unidadActual] = {};
+            if (!data[tipo][unidadActual]) {
+                data[tipo][unidadActual] = {};
+            }
             if (!data[tipo][unidadActual][versionActual]) {
                 data[tipo][unidadActual][versionActual] = {
-                    precio: precioFinal,
-                    tasa: tasaFinal,
+                    precio: precioActual,
+                    tasa: tasaActual,
                     enganchesMap: {}
                 };
+            } else {
+                // Actualizar por si acaso con el valor vigente
+                if (precioActual !== "\$0.00") data[tipo][unidadActual][versionActual].precio = precioActual;
+                if (tasaActual) data[tipo][unidadActual][versionActual].tasa = tasaActual;
             }
 
             const engMap = data[tipo][unidadActual][versionActual].enganchesMap;
@@ -124,9 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 engMap[engancheActual] = {};
             }
 
-            const plazoNum = plazoVal.replace(/[^0-9]/g, '');
+            const plazoNum = pVal.replace(/[^0-9]/g, '');
             if (plazoNum) {
-                engMap[engancheActual][plazoNum] = mensualidadVal;
+                engMap[engancheActual][plazoNum] = mVal;
             }
         });
 
