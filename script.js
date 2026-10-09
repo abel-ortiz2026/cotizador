@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tiposDisponibles = Object.keys(vehiculosData).filter(t => Object.keys(vehiculosData[t]).length > 0);
 
         if (tiposDisponibles.length === 0) {
-            selectTipo.innerHTML = '<option value="">No hay datos</option>';
+            selectTipo.innerHTML = '<option value="">No hay datos en el CSV</option>';
             return;
         }
 
@@ -145,82 +145,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Iniciar lectura del CSV inmediatamente
+    // Usamos header: true para mapear por los nombres de las columnas de tu Google Sheet automáticamente
     Papa.parse(SHEET_CSV_URL, {
         download: true,
-        header: false,
+        header: true,
         skipEmptyLines: true,
         complete: (results) => {
-            const rows = results.data;
             let data = {
                 "AUTOMÓVIL": {},
                 "SUV": {},
                 "HÍBRIDOS Y ELÉCTRICOS": {}
             };
 
-            let ultimaUnidad = "";
-            let ultimaVersion = "";
-            let ultimaTasa = "12.99%";
-            let ultimoPrecio = "\$0.00";
-            let ultimoEnganche = "";
+            results.data.forEach((row) => {
+                // Buscamos las llaves normalizando los nombres de columnas posibles
+                const keys = Object.keys(row);
+                const findVal = (terms) => {
+                    for (let k of keys) {
+                        const lk = k.toLowerCase();
+                        if (terms.some(t => lk.includes(t))) {
+                            return (row[k] || "").trim();
+                        }
+                    }
+                    return "";
+                };
 
-            rows.forEach((cols, index) => {
-                if (index === 0 || !cols || cols.length < 8) return;
+                const unidad = findVal(["unidad", "modelo", "auto", "vehiculo"]);
+                const version = findVal(["version", "versión"]);
+                const tasa = findVal(["tasa"]);
+                const enganche = findVal(["enganche"]);
+                const plazo = findVal(["plazo", "mes"]);
+                const mensualidad = findVal(["mensualidad", "pago", "cuota"]);
+                const precio = findVal(["precio", "lista"]);
 
-                const unidadVal = (cols[2] || "").trim();
-                const versionVal = (cols[3] || "").trim();
-                const tasaVal = (cols[4] || "").trim();
-                const engancheVal = (cols[5] || "").trim();
-                const plazoVal = (cols[6] || "").trim();
-                const mensualidadVal = (cols[7] || "").trim();
-                const precioVal = (cols[8] || "").trim();
+                if (!unidad || !version) return;
 
-                if (unidadVal && !unidadVal.toUpperCase().includes("COTIZACION") && !unidadVal.toUpperCase().includes("COTIZACIÓN") && !unidadVal.toUpperCase().includes("UNIDAD")) {
-                    ultimaUnidad = unidadVal.toUpperCase();
-                }
-                
-                if (versionVal && !versionVal.toUpperCase().includes("VERSION")) {
-                    ultimaVersion = versionVal.toUpperCase();
-                }
+                const tipo = clasificarVehiculo(unidad);
 
-                if (tasaVal && tasaVal.includes("%")) {
-                    ultimaTasa = tasaVal;
-                }
-                if (engancheVal && (engancheVal.includes("\$") || !isNaN(engancheVal.replace(/[^0-9.]/g, '')))) {
-                    ultimoEnganche = engancheVal;
-                }
-                if (precioVal && precioVal.includes("\$") && precioVal !== "\$0.00") {
-                    ultimoPrecio = precioVal;
-                }
-
-                if (!ultimaUnidad || !ultimaVersion || !ultimoEnganche || !plazoVal || !mensualidadVal) return;
-
-                const tipo = clasificarVehiculo(ultimaUnidad);
-
-                if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
-                if (!data[tipo][ultimaUnidad][ultimaVersion]) {
-                    data[tipo][ultimaUnidad][ultimaVersion] = {
-                        precio: ultimoPrecio !== "\$0.00" ? ultimoPrecio : "\$700,000.00",
-                        tasa: ultimaTasa,
+                if (!data[tipo][unidad]) data[tipo][unidad] = {};
+                if (!data[tipo][unidad][version]) {
+                    data[tipo][unidad][version] = {
+                        precio: precio || "\$700,000.00",
+                        tasa: tasa || "12.99%",
                         enganchesMap: {}
                     };
                 }
 
-                if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
-                    data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
+                if (precio && precio !== "\$0.00") {
+                    data[tipo][unidad][version].precio = precio;
                 }
-                if (ultimaTasa) {
-                    data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
-                }
-
-                const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
-                if (!engMap[ultimoEnganche]) {
-                    engMap[ultimoEnganche] = {};
+                if (tasa) {
+                    data[tipo][unidad][version].tasa = tasa;
                 }
 
-                const plazoNum = plazoVal.replace(/[^0-9]/g, '');
-                if (plazoNum) {
-                    engMap[ultimoEnganche][plazoNum] = mensualidadVal;
+                if (enganche) {
+                    const engMap = data[tipo][unidad][version].enganchesMap;
+                    if (!engMap[enganche]) engMap[enganche] = {};
+
+                    const plazoNum = plazo.replace(/[^0-9]/g, '');
+                    if (plazoNum && mensualidad) {
+                        engMap[enganche][plazoNum] = mensualidad;
+                    }
                 }
             });
 
@@ -228,8 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
             llenarTipos();
         },
         error: (err) => {
-            console.error("Error al descargar el CSV:", err);
-            if (selectTipo) selectTipo.innerHTML = '<option value="">Error al cargar datos</option>';
+            console.error("Error al leer CSV:", err);
+            if (selectTipo) selectTipo.innerHTML = '<option value="">Error al cargar CSV</option>';
         }
     });
 
