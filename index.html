@@ -4,11 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cotizador KIA MAX SALTILLO</title>
-    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { background-color: #0d0d0d; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .cotizador-card { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        h2 { text-align: center; color: #ff3b30; margin-bottom: 5px; font-size: 1.5rem; }
+        .subtitle { text-align: center; color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.75rem; text-transform: uppercase; color: #aaa; margin-bottom: 5px; font-weight: bold; letter-spacing: 0.5px; }
+        select { width: 100%; background: #222; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 8px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; }
+        select:focus { border-color: #ff3b30; }
+        .precio-box { background: #1f1f1f; padding: 15px; border-radius: 8px; text-align: right; margin: 20px 0; border-left: 4px solid #ff3b30; }
+        .precio-box span { font-size: 1.4rem; font-weight: bold; color: #4cd964; }
+        .precio-box label { text-align: left; display: inline; }
+        .mensualidades-box { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 15px; margin-top: 15px; }
+        .mensualidades-box h3 { font-size: 0.8rem; text-transform: uppercase; color: #888; margin-top: 0; margin-bottom: 10px; }
+        .mes-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .mes-row:last-child { border-bottom: none; }
+        .mes-val { color: #4cd964; font-weight: bold; }
+        .btn-accion { display: block; width: 100%; background: #ff3b30; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; margin-top: 15px; text-decoration: none; transition: background 0.3s; }
+        .btn-accion:hover { background: #e03229; }
+        .btn-secundario { background: #222; color: #ccc; margin-top: 10px; border: 1px solid #333; }
+        .btn-secundario:hover { background: #333; color: #fff; }
+    </style>
 </head>
 <body>
 
@@ -18,9 +39,7 @@
 
         <div class="form-group">
             <label>Tipo de Vehículo</label>
-            <select id="select-tipo">
-                <option value="">Cargando tipos...</option>
-            </select>
+            <select id="select-tipo"><option>Cargando...</option></select>
         </div>
 
         <div class="form-group">
@@ -35,7 +54,7 @@
 
         <div class="precio-box">
             <label>Precio de Lista:</label><br>
-            <span id="precio-lista">$0.00</span>
+            <span id="precio-lista">\$0.00</span>
         </div>
 
         <div class="form-group">
@@ -50,10 +69,10 @@
 
         <div class="mensualidades-box">
             <h3>Mensualidades</h3>
-            <div class="mes-row"><span>72 meses</span><span class="mes-val">$0.00</span></div>
-            <div class="mes-row"><span>60 meses</span><span class="mes-val">$0.00</span></div>
-            <div class="mes-row"><span>48 meses</span><span class="mes-val">$0.00</span></div>
-            <div class="mes-row"><span>36 meses</span><span class="mes-val">$0.00</span></div>
+            <div class="mes-row"><span>72 meses</span><span class="mes-val" id="m-72">\$0.00</span></div>
+            <div class="mes-row"><span>60 meses</span><span class="mes-val" id="m-60">\$0.00</span></div>
+            <div class="mes-row"><span>48 meses</span><span class="mes-val" id="m-48">\$0.00</span></div>
+            <div class="mes-row"><span>36 meses</span><span class="mes-val" id="m-36">\$0.00</span></div>
         </div>
 
         <button class="btn-accion" id="btn-abrir-modal">
@@ -88,6 +107,192 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0m35pW4q8hTL_fzHHxZcEpTif783qewXBSSsOUKKzBuHXOoBsdco_KOqP3PPPEWl8CD8yE5E01tsf/pub?gid=679410401&single=true&output=csv&t=' + Date.now();
+
+            let vehiculosData = {};
+
+            const clasificarVehiculo = (unidad) => {
+                const u = unidad.toUpperCase();
+                if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELÉCTRICO") || u.includes("PHEV")) {
+                    return "HÍBRIDOS Y ELÉCTRICOS";
+                }
+                if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
+                    return "SUV";
+                }
+                return "AUTOMÓVIL";
+            };
+
+            Papa.parse(SHEET_CSV_URL, {
+                download: true,
+                header: false,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    const rows = results.data;
+                    let data = { "AUTOMÓVIL": {}, "SUV": {}, "HÍBRIDOS Y ELÉCTRICOS": {} };
+
+                    let unidadActual = "";
+                    let versionActual = "";
+                    let tasaActual = "12.99%";
+                    let precioActual = "\$0.00";
+                    letengancheActual = "";
+
+                    rows.forEach((cols) => {
+                        if (!cols || cols.length < 8) return;
+
+                        const uVal = (cols[2] || "").trim();
+                        const vVal = (cols[3] || "").trim();
+                        const tVal = (cols[4] || "").trim();
+                        const eVal = (cols[5] || "").trim();
+                        const pVal = (cols[6] || "").trim();
+                        const mVal = (cols[7] || "").trim();
+                        const precioVal = (cols[8] || "").trim();
+
+                        if (uVal && !uVal.toUpperCase().includes("COTIZACION") && !uVal.toUpperCase().includes("UNIDAD")) {
+                            unidadActual = uVal.toUpperCase();
+                            precioActual = "\$0.00";
+                            tasaActual = "12.99%";
+                        }
+                        if (vVal && !vVal.toUpperCase().includes("VERSION")) {
+                            versionActual = vVal.toUpperCase();
+                        }
+                        if (tVal && !tVal.toUpperCase().includes("TASA") && tVal.includes("%")) {
+                            tasaActual = tVal;
+                        }
+                        if (eVal && !eVal.toUpperCase().includes("ENGANCHE")) {
+                            engancheActual = eVal;
+                        }
+                        if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                            precioActual = precioVal;
+                        }
+
+                        if (!unidadActual || !versionActual || !engancheActual || !pVal || !mVal) return;
+
+                        const tipo = clasificarVehiculo(unidadActual);
+
+                        if (!data[tipo][unidadActual]) data[tipo][unidadActual] = {};
+                        if (!data[tipo][unidadActual][versionActual]) {
+                            data[tipo][unidadActual][versionActual] = {
+                                precio: precioActual,
+                                tasa: tasaActual,
+                                enganchesMap: {}
+                            };
+                        }
+
+                        if (precioActual !== "\$0.00") data[tipo][unidadActual][versionActual].precio = precioActual;
+                        if (tasaActual) data[tipo][unidadActual][versionActual].tasa = tasaActual;
+
+                        const engMap = data[tipo][unidadActual][versionActual].enganchesMap;
+                        if (!engMap[engancheActual]) engMap[engancheActual] = {};
+
+                        const plazoNum = pVal.replace(/[^0-9]/g, '');
+                        if (plazoNum) {
+                            engMap[engancheActual][plazoNum] = mVal;
+                        }
+                    });
+
+                    vehiculosData = data;
+                    llenarTipos();
+                }
+            });
+
+            const selectTipo = document.getElementById('select-tipo');
+            const selectUnidad = document.getElementById('select-unidad');
+            const selectVersion = document.getElementById('select-version');
+            const selectEnganche = document.getElementById('select-enganche');
+            const precioListaEl = document.getElementById('precio-lista');
+            const tasaAnualEl = document.getElementById('tasa-anual');
+
+            function llenarTipos() {
+                selectTipo.innerHTML = '';
+                Object.keys(vehiculosData).forEach(t => {
+                    if (Object.keys(vehiculosData[t]).length > 0) {
+                        const opt = document.createElement('option');
+                        opt.value = t; opt.textContent = t;
+                        selectTipo.appendChild(opt);
+                    }
+                });
+                llenarUnidades();
+            }
+
+            function llenarUnidades() {
+                selectUnidad.innerHTML = '';
+                const unidades = vehiculosData[selectTipo.value] ? Object.keys(vehiculosData[selectTipo.value]) : [];
+                unidades.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u; opt.textContent = u;
+                    selectUnidad.appendChild(opt);
+                });
+                llenarVersiones();
+            }
+
+            function llenarVersiones() {
+                selectVersion.innerHTML = '';
+                const versiones = vehiculosData[selectTipo.value]?.[selectUnidad.value] ? Object.keys(vehiculosData[selectTipo.value][selectUnidad.value]) : [];
+                versiones.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v; opt.textContent = v;
+                    selectVersion.appendChild(opt);
+                });
+                llenarEnganches();
+            }
+
+            function llenarEnganches() {
+                selectEnganche.innerHTML = '';
+                const info = vehiculosData[selectTipo.value]?.[selectUnidad.value]?.[selectVersion.value];
+                const enganches = (info && info.enganchesMap) ? Object.keys(info.enganchesMap) : [];
+                enganches.forEach(e => {
+                    const opt = document.createElement('option');
+                    opt.value = e; opt.textContent = e;
+                    selectEnganche.appendChild(opt);
+                });
+                actualizarPantalla();
+            }
+
+            function actualizarPantalla() {
+                const info = vehiculosData[selectTipo.value]?.[selectUnidad.value]?.[selectVersion.value];
+                if (!info) return;
+
+                precioListaEl.innerText = info.precio || "\$0.00";
+                tasaAnualEl.innerText = info.tasa || "12.99%";
+
+                const plazosMap = info.enganchesMap?.[selectEnganche.value] || {};
+                ["72", "60", "48", "36"].forEach(p => {
+                    document.getElementById(`m-${p}`).innerText = plazosMap[p] || "\$0.00";
+                });
+            }
+
+            selectTipo.addEventListener('change', llenarUnidades);
+            selectUnidad.addEventListener('change', llenarVersiones);
+            selectVersion.addEventListener('change', llenarEnganches);
+            selectEnganche.addEventListener('change', actualizarPantalla);
+
+            // Modal y WhatsApp
+            const modalContacto = document.getElementById('modal-contacto');
+            document.getElementById('btn-abrir-modal').addEventListener('click', () => {
+                document.getElementById('resumen-unidad').textContent = `Unidad: ${selectUnidad.value || '-'}`;
+                document.getElementById('resumen-version').textContent = `Versión: ${selectVersion.value || '-'}`;
+                document.getElementById('resumen-enganche').textContent = `Enganche: ${selectEnganche.value || '-'}`;
+                document.getElementById('resumen-mensualidad').textContent = `Mensualidad (48m): ${document.getElementById('m-48').textContent}`;
+                modalContacto.style.display = 'flex';
+            });
+
+            document.getElementById('btn-cerrar-modal').addEventListener('click', () => {
+                modalcontacto.style.display = 'none';
+            });
+
+            document.getElementById('btn-enviar-wsp').addEventListener('click', () => {
+                const nombre = document.getElementById('input-nombre').value.trim();
+                const telefono = document.getElementById('input-telefono').value.trim();
+                const mensaje = `Hola, mi nombre es *${nombre || 'Cliente'}* (Tel: ${telefono || 'No proporcionado'}). Me interesa:\n\n🚗 ${selectUnidad.value} - ${selectVersion.value}\n💰 Precio: ${precioListaEl.textContent}\n📥 Enganche: ${selectEnganche.value}\n📅 Mensualidad (48m): ${document.getElementById('m-48').textContent}`;
+                window.open(`https://wa.me/528448067192?text=${encodeURIComponent(mensaje)}`, '_blank');
+            });
+
+            document.getElementById('btn-pdf').addEventListener('click', () => {
+                html2pdf().from(document.querySelector('.cotizador-card')).save('Cotizacion-KIA-Saltillo.pdf');
+            });
+        });
+    </script>
 </body>
 </html>
