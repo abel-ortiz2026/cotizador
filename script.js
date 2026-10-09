@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let ultimoPrecio = "\$0.00";
         let ultimoEnganche = "";
 
-        rows.forEach((cols, index) => {
+        rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
 
             const unidadVal = (cols[2] || "").trim();
@@ -111,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        console.log("Estructura final procesada:", data);
         vehiculosData = data;
         llenarTipos();
     };
