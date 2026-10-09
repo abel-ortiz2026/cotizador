@@ -1,299 +1,293 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cotizador KIA MAX SALTILLO</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * { box-sizing: border-box; }
-        body { background-color: #0d0d0d; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .cotizador-card { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        h2 { text-align: center; color: #ff3b30; margin-bottom: 5px; font-size: 1.5rem; }
-        .subtitle { text-align: center; color: #888; font-size: 0.85rem; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 0.75rem; text-transform: uppercase; color: #aaa; margin-bottom: 5px; font-weight: bold; letter-spacing: 0.5px; }
-        select { width: 100%; background: #222; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 8px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; }
-        select:focus { border-color: #ff3b30; }
-        .precio-box { background: #1f1f1f; padding: 15px; border-radius: 8px; text-align: right; margin: 20px 0; border-left: 4px solid #ff3b30; }
-        .precio-box span { font-size: 1.4rem; font-weight: bold; color: #4cd964; }
-        .precio-box label { text-align: left; display: inline; }
-        .mensualidades-box { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 15px; margin-top: 15px; }
-        .mensualidades-box h3 { font-size: 0.8rem; text-transform: uppercase; color: #888; margin-top: 0; margin-bottom: 10px; }
-        .mes-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
-        .mes-row:last-child { border-bottom: none; }
-        .mes-val { color: #4cd964; font-weight: bold; }
-        .btn-accion { display: block; width: 100%; background: #ff3b30; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; margin-top: 15px; text-decoration: none; transition: background 0.3s; }
-        .btn-accion:hover { background: #e03229; }
-        .btn-secundario { background: #222; color: #ccc; margin-top: 10px; border: 1px solid #333; }
-        .btn-secundario:hover { background: #333; color: #fff; }
-    </style>
-</head>
-<body>
+document.addEventListener('DOMContentLoaded', () => {
 
-    <div class="cotizador-card">
-        <h2>KIA MAX SALTILLO</h2>
-        <div class="subtitle">Asesor: Abel Ortiz Silva | Tel: 844 806 7192</div>
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0m35pW4q8hTL_fzHHxZcEpTif783qewXBSSsOUKKzBuHXOoBsdco_KOqP3PPPEWl8CD8yE5E01tsf/pub?gid=679410401&single=true&output=csv&t=' + new Date().getTime();
 
-        <div class="form-group">
-            <label>Tipo de Vehículo</label>
-            <select id="select-tipo"><option>Cargando datos...</option></select>
-        </div>
+    const selectTipo = document.getElementById('select-tipo');
+    const selectUnidad = document.getElementById('select-unidad');
+    const selectVersion = document.getElementById('select-version');
+    const selectEnganche = document.getElementById('select-enganche');
+    const precioListaEl = document.getElementById('precio-lista');
+    const tasaAnualEl = document.getElementById('tasa-anual');
+    const mesVals = document.querySelectorAll('.mes-val');
+    const btnPdf = document.getElementById('btn-pdf');
 
-        <div class="form-group">
-            <label>Unidad</label>
-            <select id="select-unidad"></select>
-        </div>
+    const modalContacto = document.getElementById('modal-contacto');
+    const btnAbrirModal = document.getElementById('btn-abrir-modal');
+    const btnCerrarModal = document.getElementById('btn-cerrar-modal');
+    const btnEnviarWsp = document.getElementById('btn-enviar-wsp');
+    const inputNombre = document.getElementById('input-nombre');
+    const inputTelefono = document.getElementById('input-telefono');
+    const resumenUnidad = document.getElementById('resumen-unidad');
+    const resumenVersion = document.getElementById('resumen-version');
+    const resumenEnganche = document.getElementById('resumen-enganche');
+    const resumenMensualidad = document.getElementById('resumen-mensualidad');
 
-        <div class="form-group">
-            <label>Versión</label>
-            <select id="select-version"></select>
-        </div>
+    let vehiculosData = {};
 
-        <div class="precio-box">
-            <label>Precio de Lista:</label><br>
-            <span id="precio-lista">\$0.00</span>
-        </div>
+    const clasificarVehiculo = (unidad) => {
+        const u = unidad.toUpperCase();
+        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELECTRICO") || u.includes("PHEV")) {
+            return "HÍBRIDOS Y ELÉCTRICOS";
+        }
+        if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
+            return "SUV";
+        }
+        return "AUTOMÓVIL";
+    };
 
-        <div class="form-group">
-            <label>Enganche</label>
-            <select id="select-enganche"></select>
-        </div>
+    const procesarCSV = (results) => {
+        const rows = results.data;
+        let data = {
+            "AUTOMÓVIL": {},
+            "SUV": {},
+            "HÍBRIDOS Y ELÉCTRICOS": {}
+        };
 
-        <div class="form-group">
-            <label>Tasa Anual Aplicada:</label>
-            <div style="background: #222; padding: 10px; border-radius: 8px; color: #4cd964; font-weight: bold;" id="tasa-anual">12.99%</div>
-        </div>
+        let ultimaUnidad = "";
+        let ultimaVersion = "";
+        let ultimaTasa = "12.99%";
+        let ultimoPrecio = "\$0.00";
+        let ultimoEnganche = "";
 
-        <div class="mensualidades-box">
-            <h3>Mensualidades</h3>
-            <div class="mes-row"><span>72 meses</span><span class="mes-val" id="m-72">\$0.00</span></div>
-            <div class="mes-row"><span>60 meses</span><span class="mes-val" id="m-60">\$0.00</span></div>
-            <div class="mes-row"><span>48 meses</span><span class="mes-val" id="m-48">\$0.00</span></div>
-            <div class="mes-row"><span>36 meses</span><span class="mes-val" id="m-36">\$0.00</span></div>
-        </div>
+        rows.forEach((cols) => {
+            if (!cols || cols.length < 8) return;
 
-        <button class="btn-accion" id="btn-abrir-modal">
-            <i class="fa fa-whatsapp"></i> ¿Deseas más información? Contáctanos
-        </button>
+            const unidadVal = (cols[2] || "").trim();
+            const versionVal = (cols[3] || "").trim();
+            const tasaVal = (cols[4] || "").trim();
+            const engancheVal = (cols[5] || "").trim();
+            const plazoVal = (cols[6] || "").trim();
+            const mensualidadVal = (cols[7] || "").trim();
+            const precioVal = (cols[8] || "").trim();
 
-        <button class="btn-accion btn-secundario" id="btn-pdf">
-            <i class="fa fa-file-pdf"></i> Exportar Cotización en PDF
-        </button>
-    </div>
-
-    <!-- Modal de Contacto -->
-    <div id="modal-contacto" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:1000;">
-        <div style="background:#1a1a1a; padding:25px; border-radius:12px; width:90%; max-width:400px; border:1px solid #333;">
-            <h3 style="color:#ff3b30; margin-top:0;">Enviar Cotización por WhatsApp</h3>
-            <p id="resumen-unidad" style="font-size:0.85rem; color:#ccc; margin:5px 0;"></p>
-            <p id="resumen-version" style="font-size:0.85rem; color:#ccc; margin:5px 0;"></p>
-            <p id="resumen-enganche" style="font-size:0.85rem; color:#ccc; margin:5px 0;"></p>
-            <p id="resumen-mensualidad" style="font-size:0.85rem; color:#4cd964; margin:5px 0; font-weight:bold;"></p>
+            const unidadUpper = (unidadVal || "").toUpperCase();
+            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
+                ultimaUnidad = unidadUpper;
+            }
             
-            <div class="form-group" style="margin-top:15px;">
-                <label>Tu Nombre</label>
-                <input type="text" id="input-nombre" placeholder="Ej. Juan Pérez" style="width:100%; background:#222; border:1px solid #333; color:#fff; padding:10px; border-radius:6px; box-sizing:border-box;">
-            </div>
-            <div class="form-group">
-                <label>Tu Teléfono</label>
-                <input type="text" id="input-telefono" placeholder="Ej. 8441234567" style="width:100%; background:#222; border:1px solid #333; color:#fff; padding:10px; border-radius:6px; box-sizing:border-box;">
-            </div>
-            
-            <button class="btn-accion" id="btn-enviar-wsp" style="background:#25d366; margin-top:15px;"><i class="fa fa-whatsapp"></i> Enviar WhatsApp</button>
-            <button class="btn-accion btn-secundario" id="btn-cerrar-modal" style="margin-top:10px;">Cancelar</button>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // URL convertida a exportación CSV basada en tu nuevo ID de hoja
-            const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1H_w0pEvsCjeuVHAbwaatnShXVFyU2QJFsxRCp7Hy0Ys/export?format=csv&t=' + Date.now();
-
-            let vehiculosData = {};
-
-            const clasificarVehiculo = (unidad) => {
-                const u = unidad.toUpperCase();
-                if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELÉCTRICO") || u.includes("PHEV")) {
-                    return "HÍBRIDOS Y ELÉCTRICOS";
-                }
-                if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
-                    return "SUV";
-                }
-                return "AUTOMÓVIL";
-            };
-
-            Papa.parse(SHEET_CSV_URL, {
-                download: true,
-                header: false,
-                skipEmptyLines: true,
-                complete: (results) => {
-                    const rows = results.data;
-                    let data = { "AUTOMÓVIL": {}, "SUV": {}, "HÍBRIDOS Y ELÉCTRICOS": {} };
-
-                    let unidadActual = "";
-                    let versionActual = "";
-                    let tasaActual = "12.99%";
-                    let precioActual = "\$0.00";
-                    let engancheActual = "";
-
-                    rows.forEach((cols, index) => {
-                        if (index === 0 || !cols || cols.length < 8) return;
-
-                        // Mapeo robusto buscando en columnas estándar
-                        const uVal = (cols[1] || cols[2] || "").trim();
-                        const vVal = (cols[2] || cols[3] || "").trim();
-                        const tVal = (cols[3] || cols[4] || "").trim();
-                        const eVal = (cols[4] || cols[5] || "").trim();
-                        const pVal = (cols[5] || cols[6] || "").trim();
-                        const mVal = (cols[6] || cols[7] || "").trim();
-                        const precioVal = (cols[7] || cols[8] || "").trim();
-
-                        if (uVal && !uVal.toUpperCase().includes("COTIZACION") && !uVal.toUpperCase().includes("UNIDAD")) {
-                            unidadActual = uVal.toUpperCase();
-                        }
-                        if (vVal && !vVal.toUpperCase().includes("VERSION") && vVal !== unidadActual) {
-                            versionActual = vVal.toUpperCase();
-                        }
-                        if (tVal && tVal.includes("%")) {
-                            tasaActual = tVal;
-                        }
-                        if (eVal && (eVal.includes("\$") || !isNaN(eVal.replace(/[^0-9.]/g, '')))) {
-                            engancheActual = eVal;
-                        }
-                        if (precioVal && precioVal.includes("\$") && precioVal !== "\$0.00") {
-                            precioActual = precioVal;
-                        }
-
-                        if (!unidadActual || !versionActual || !engancheActual || !pVal || !mVal) return;
-
-                        const tipo = clasificarVehiculo(unidadActual);
-
-                        if (!data[tipo][unidadActual]) data[tipo][unidadActual] = {};
-                        if (!data[tipo][unidadActual][versionActual]) {
-                            data[tipo][unidadActual][versionActual] = {
-                                precio: precioActual !== "\$0.00" ? precioActual : "\$700,000.00",
-                                tasa: tasaActual,
-                                enganchesMap: {}
-                            };
-                        }
-
-                        if (precioActual !== "\$0.00") {
-                            data[tipo][unidadActual][versionActual].precio = precioActual;
-                        }
-
-                        const engMap = data[tipo][unidadActual][versionActual].enganchesMap;
-                        if (!engMap[engancheActual]) engMap[engancheActual] = {};
-
-                        const plazoNum = pVal.replace(/[^0-9]/g, '');
-                        if (plazoNum) {
-                            engMap[engancheActual][plazoNum] = mVal;
-                        }
-                    });
-
-                    vehiculosData = data;
-                    llenarTipos();
-                }
-            });
-
-            const selectTipo = document.getElementById('select-tipo');
-            const selectUnidad = document.getElementById('select-unidad');
-            const selectVersion = document.getElementById('select-version');
-            const selectEnganche = document.getElementById('select-enganche');
-            const precioListaEl = document.getElementById('precio-lista');
-            const tasaAnualEl = document.getElementById('tasa-anual');
-
-            function llenarTipos() {
-                selectTipo.innerHTML = '';
-                Object.keys(vehiculosData).forEach(t => {
-                    if (Object.keys(vehiculosData[t]).length > 0) {
-                        const opt = document.createElement('option');
-                        opt.value = t; opt.textContent = t;
-                        selectTipo.appendChild(opt);
-                    }
-                });
-                llenarUnidades();
+            const versionUpper = (versionVal || "").toUpperCase();
+            if (versionUpper && !versionUpper.includes("VERSION")) {
+                ultimaVersion = versionUpper;
             }
 
-            function llenarUnidades() {
-                selectUnidad.innerHTML = '';
-                const unidades = vehiculosData[selectTipo.value] ? Object.keys(vehiculosData[selectTipo.value]) : [];
-                unidades.forEach(u => {
-                    const opt = document.createElement('option');
-                    opt.value = u; opt.textContent = u;
-                    selectUnidad.appendChild(opt);
-                });
-                llenarVersiones();
+            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
+                ultimaTasa = tasaVal;
+            }
+            if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
+                ultimoEnganche = engancheVal;
+            }
+            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                ultimoPrecio = precioVal;
             }
 
-            function llenarVersiones() {
-                selectVersion.innerHTML = '';
-                const versiones = vehiculosData[selectTipo.value]?.[selectUnidad.value] ? Object.keys(vehiculosData[selectTipo.value][selectUnidad.value]) : [];
-                versiones.forEach(v => {
-                    const opt = document.createElement('option');
-                    opt.value = v; opt.textContent = v;
-                    selectVersion.appendChild(opt);
-                });
-                llenarEnganches();
+            if (!ultimaUnidad || !ultimaVersion || !ultimoEnganche || !plazoVal || !mensualidadVal) return;
+
+            const tipo = clasificarVehiculo(ultimaUnidad);
+
+            if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
+            if (!data[tipo][ultimaUnidad][ultimaVersion]) {
+                data[tipo][ultimaUnidad][ultimaVersion] = {
+                    precio: ultimoPrecio,
+                    tasa: ultimaTasa,
+                    enganchesMap: {}
+                };
             }
 
-            function llenarEnganches() {
-                selectEnganche.innerHTML = '';
-                const info = vehiculosData[selectTipo.value]?.[selectUnidad.value]?.[selectVersion.value];
-                const enganches = (info && info.enganchesMap) ? Object.keys(info.enganchesMap) : [];
-                enganches.forEach(e => {
-                    const opt = document.createElement('option');
-                    opt.value = e; opt.textContent = e;
-                    selectEnganche.appendChild(opt);
-                });
-                actualizarPantalla();
+            if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
+                data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
+            }
+            if (ultimaTasa) {
+                data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
             }
 
-            function actualizarPantalla() {
-                const info = vehiculosData[selectTipo.value]?.[selectUnidad.value]?.[selectVersion.value];
-                if (!info) return;
-
-                precioListaEl.innerText = info.precio || "\$0.00";
-                tasaAnualEl.innerText = info.tasa || "12.99%";
-
-                const plazosMap = info.enganchesMap?.[selectEnganche.value] || {};
-                ["72", "60", "48", "36"].forEach(p => {
-                    document.getElementById(`m-${p}`).innerText = plazosMap[p] || "\$0.00";
-                });
+            const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
+            if (!engMap[ultimoEnganche]) {
+                engMap[ultimoEnganche] = {};
             }
 
-            selectTipo.addEventListener('change', llenarUnidades);
-            selectUnidad.addEventListener('change', llenarVersiones);
-            selectVersion.addEventListener('change', llenarEnganches);
-            selectEnganche.addEventListener('change', actualizarPantalla);
-
-            // Modal y WhatsApp
-            const modalContacto = document.getElementById('modal-contacto');
-            document.getElementById('btn-abrir-modal').addEventListener('click', () => {
-                document.getElementById('resumen-unidad').textContent = `Unidad: ${selectUnidad.value || '-'}`;
-                document.getElementById('resumen-version').textContent = `Versión: ${selectVersion.value || '-'}`;
-                document.getElementById('resumen-enganche').textContent = `Enganche: ${selectEnganche.value || '-'}`;
-                document.getElementById('resumen-mensualidad').textContent = `Mensualidad (48m): ${document.getElementById('m-48').textContent}`;
-                modalContacto.style.display = 'flex';
-            });
-
-            document.getElementById('btn-cerrar-modal').addEventListener('click', () => {
-                modalContacto.style.display = 'none';
-            });
-
-            document.getElementById('btn-enviar-wsp').addEventListener('click', () => {
-                const nombre = document.getElementById('input-nombre').value.trim();
-                const telefono = document.getElementById('input-telefono').value.trim();
-                const mensaje = `Hola, mi nombre es *${nombre || 'Cliente'}* (Tel: ${telefono || 'No proporcionado'}). Me interesa:\n\n🚗 ${selectUnidad.value} - ${selectVersion.value}\n💰 Precio: ${precioListaEl.textContent}\n📥 Enganche: ${selectEnganche.value}\n📅 Mensualidad (48m): ${document.getElementById('m-48').textContent}`;
-                window.open(`https://wa.me/528448067192?text=${encodeURIComponent(mensaje)}`, '_blank');
-            });
-
-            document.getElementById('btn-pdf').addEventListener('click', () => {
-                html2pdf().from(document.querySelector('.cotizador-card')).save('Cotizacion-KIA-Saltillo.pdf');
-            });
+            const plazoNum = plazoVal.replace(/[^0-9]/g, '');
+            if (plazoNum) {
+                engMap[ultimoEnganche][plazoNum] = mensualidadVal;
+            }
         });
-    </script>
-</body>
-</html>
+
+        vehiculosData = data;
+        llenarTipos();
+    };
+
+    const llenarTipos = () => {
+        if (!selectTipo) return;
+        selectTipo.innerHTML = '';
+        
+        const tiposDisponibles = Object.keys(vehiculosData).filter(t => Object.keys(vehiculosData[t]).length > 0);
+
+        if (tiposDisponibles.length === 0) {
+            selectTipo.innerHTML = '<option value="">No hay tipos disponibles</option>';
+            return;
+        }
+
+        tiposDisponibles.forEach(tipo => {
+            const opt = document.createElement('option');
+            opt.value = tipo;
+            opt.textContent = tipo;
+            selectTipo.appendChild(opt);
+        });
+
+        llenarUnidades();
+    };
+
+    const llenarUnidades = () => {
+        if (!selectUnidad) return;
+        const tipoSel = selectTipo.value;
+        selectUnidad.innerHTML = '';
+        
+        const unidades = vehiculosData[tipoSel] ? Object.keys(vehiculosData[tipoSel]) : [];
+
+        if (unidades.length === 0) {
+            selectUnidad.innerHTML = '<option value="">Sin unidades</option>';
+        } else {
+            unidades.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u;
+                opt.textContent = u;
+                selectUnidad.appendChild(opt);
+            });
+        }
+        llenarVersiones();
+    };
+
+    const llenarVersiones = () => {
+        if (!selectVersion) return;
+        const tipoSel = selectTipo.value;
+        const unidadSel = selectUnidad.value;
+        selectVersion.innerHTML = '';
+
+        const versiones = vehiculosData[tipoSel]?.[unidadSel] ? Object.keys(vehiculosData[tipoSel][unidadSel]) : [];
+
+        if (versiones.length === 0) {
+            selectVersion.innerHTML = '<option value="">Sin versiones</option>';
+        } else {
+            versiones.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                selectVersion.appendChild(opt);
+            });
+        }
+        llenarEnganches();
+    };
+
+    const llenarEnganches = () => {
+        if (!selectEnganche) return;
+        const tipoSel = selectTipo.value;
+        const unidadSel = selectUnidad.value;
+        const versionSel = selectVersion.value;
+        selectEnganche.innerHTML = '';
+
+        const info = vehiculosData[tipoSel]?.[unidadSel]?.[versionSel];
+        const enganches = (info && info.enganchesMap) ? Object.keys(info.enganchesMap) : [];
+
+        if (enganches.length === 0) {
+            selectEnganche.innerHTML = '<option value="">Sin enganches</option>';
+        } else {
+            enganches.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e;
+                opt.textContent = e;
+                selectEnganche.appendChild(opt);
+            });
+        }
+        actualizarPantalla();
+    };
+
+    const actualizarPantalla = () => {
+        if (!selectTipo || !selectUnidad || !selectVersion || !selectEnganche) return;
+        
+        const tipo = selectTipo.value;
+        const unidad = selectUnidad.value;
+        const version = selectVersion.value;
+        const enganche = selectEnganche.value;
+
+        const info = vehiculosData[tipo]?.[unidad]?.[version];
+        if (!info) {
+            if (precioListaEl) precioListaEl.innerText = "\$0.00";
+            if (tasaAnualEl) tasaAnualEl.innerText = "12.99%";
+            if (mesVals) mesVals.forEach(r => r.innerText = "\$0.00");
+            return;
+        }
+
+        if (precioListaEl) precioListaEl.innerText = info.precio || "\$0.00";
+        if (tasaAnualEl) tasaAnualEl.innerText = info.tasa || "12.99%";
+
+        const plazosMap = info.enganchesMap?.[enganche] || {};
+        const plazos = ["72", "60", "48", "36"];
+        plazos.forEach((p, idx) => {
+            if (mesVals[idx]) {
+                mesVals[idx].innerText = plazosMap[p] || "\$0.00";
+            }
+        });
+    };
+
+    if (selectTipo) selectTipo.addEventListener('change', llenarUnidades);
+    if (selectUnidad) selectUnidad.addEventListener('change', llenarVersiones);
+    if (selectVersion) selectVersion.addEventListener('change', llenarEnganches);
+    if (selectEnganche) selectEnganche.addEventListener('change', actualizarPantalla);
+
+    if (btnAbrirModal) {
+        btnAbrirModal.addEventListener('click', () => {
+            if (resumenUnidad) resumenUnidad.textContent = `Unidad: ${selectUnidad.value || '-'}`;
+            if (resumenVersion) resumenVersion.textContent = `Versión: ${selectVersion.value || '-'}`;
+            if (resumenEnganche) resumenEnganche.textContent = `Enganche: ${selectEnganche.value || '-'}`;
+            if (resumenMensualidad && mesVals[2]) resumenMensualidad.textContent = `Mensualidad (48m): ${mesVals[2].textContent}`;
+            if (modalContacto) modalContacto.style.display = 'flex';
+        });
+    }
+
+    if (btnCerrarModal) {
+        btnCerrarModal.addEventListener('click', () => {
+            if (modalContacto) modalContacto.style.display = 'none';
+        });
+    }
+
+    if (btnEnviarWsp) {
+        btnEnviarWsp.addEventListener('click', () => {
+            const nombre = inputNombre ? inputNombre.value.trim() : '';
+            const telefono = inputTelefono ? inputTelefono.value.trim() : '';
+            const unidad = selectUnidad.value || '-';
+            const version = selectVersion.value || '-';
+            const precio = precioListaEl ? precioListaEl.textContent : '-';
+            const enganche = selectEnganche.value || '-';
+            const mes48 = mesVals[2] ? mesVals[2].textContent : '-';
+
+            const mensaje = `Hola, mi nombre es *${nombre || 'Cliente'}* (Tel: ${telefono || 'No proporcionado'}). Me interesa la siguiente cotización:\n\n🚗 *Vehículo:* ${unidad} - ${version}\n💰 *Precio:* ${precio}\n📥 *Enganche:* ${enganche}\n📅 *Mensualidad (48 meses):* ${mes48}`;
+            
+            window.open(`https://wa.me/528448067192?text=${encodeURIComponent(mensaje)}`, '_blank');
+        });
+    }
+
+    if (btnPdf) {
+        btnPdf.addEventListener('click', () => {
+            const elemento = document.querySelector('.cotizador-card');
+            const opciones = {
+                margin: 1,
+                filename: 'Cotizacion-KIA-Saltillo.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().from(elemento).set(opciones).save();
+        });
+    }
+
+    Papa.parse(SHEET_CSV_URL, {
+        download: true,
+        header: false,
+        skipEmptyLines: true,
+        complete: (results) => {
+            procesarCSV(results);
+        },
+        error: (err) => {
+            console.error("Error al descargar el CSV:", err);
+        }
+    });
+});
