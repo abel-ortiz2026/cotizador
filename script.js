@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const clasificarVehiculo = (unidad) => {
         const u = unidad.toUpperCase();
-        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELÉCTRICO") || u.includes("PHEV")) {
+        if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELECTRICO") || u.includes("PHEV")) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
         if (u.includes("SONET") || u.includes("SELTOS") || u.includes("SPORTAGE") || u.includes("SORENTO") || u.includes("TELLURIDE") || u.includes("SOUL") || u.includes("SUV")) {
@@ -43,78 +43,72 @@ document.addEventListener('DOMContentLoaded', () => {
             "HÍBRIDOS Y ELÉCTRICOS": {}
         };
 
-        let unidadActual = "";
-        let versionActual = "";
-        let precioActual = "\$0.00";
-        let tasaActual = "12.99%";
-        let engancheActual = "";
+        let ultimaUnidad = "";
+        let ultimaVersion = "";
+        let ultimaTasa = "12.99%";
+        let ultimoPrecio = "\$0.00";
+        let ultimoEnganche = "";
 
         rows.forEach((cols) => {
             if (!cols || cols.length < 8) return;
 
-            const uVal = (cols[2] || "").trim();
-            const vVal = (cols[3] || "").trim();
-            const tVal = (cols[4] || "").trim();
-            const eVal = (cols[5] || "").trim();
-            const pVal = (cols[6] || "").trim(); // plazo
-            const mVal = (cols[7] || "").trim(); // mensualidad
-            const precioVal = (cols[8] || "").trim(); // precio
+            const unidadVal = (cols[2] || "").trim();
+            const versionVal = (cols[3] || "").trim();
+            const tasaVal = (cols[4] || "").trim();
+            const engancheVal = (cols[5] || "").trim();
+            const plazoVal = (cols[6] || "").trim();
+            const mensualidadVal = (cols[7] || "").trim();
+            const precioVal = (cols[8] || "").trim();
 
-            // Detectar Unidad
-            if (uVal && !uVal.toUpperCase().includes("COTIZACION") && !uVal.toUpperCase().includes("UNIDAD")) {
-                unidadActual = uVal.toUpperCase();
-                // Al cambiar de unidad, reiniciamos el precio y tasa base del bloque
-                precioActual = "\$0.00";
-                tasaActual = "12.99%";
+            const unidadUpper = (unidadVal || "").toUpperCase();
+            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
+                ultimaUnidad = unidadUpper;
+            }
+            
+            const versionUpper = (versionVal || "").toUpperCase();
+            if (versionUpper && !versionUpper.includes("VERSION")) {
+                ultimaVersion = versionUpper;
             }
 
-            // Detectar Versión
-            if (vVal && !vVal.toUpperCase().includes("VERSION")) {
-                versionActual = vVal.toUpperCase();
+            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
+                ultimaTasa = tasaVal;
             }
-
-            // Capturar precio si viene en la fila actual
+            if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
+                ultimoEnganche = engancheVal;
+            }
             if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
-                precioActual = precioVal;
+                ultimoPrecio = precioVal;
             }
 
-            // Capturar tasa si viene en la fila actual
-            if (tVal && !tVal.toUpperCase().includes("TASA") && tVal.includes("%")) {
-                tasaActual = tVal;
-            }
+            if (!ultimaUnidad || !ultimaVersion || !ultimoEnganche || !plazoVal || !mensualidadVal) return;
 
-            // Capturar enganche
-            if (eVal && !eVal.toUpperCase().includes("ENGANCHE")) {
-                engancheActual = eVal;
-            }
+            const tipo = clasificarVehiculo(ultimaUnidad);
 
-            if (!unidadActual || !versionActual || !engancheActual || !pVal || !mVal) return;
-
-            const tipo = clasificarVehiculo(unidadActual);
-
-            if (!data[tipo][unidadActual]) {
-                data[tipo][unidadActual] = {};
-            }
-            if (!data[tipo][unidadActual][versionActual]) {
-                data[tipo][unidadActual][versionActual] = {
-                    precio: precioActual,
-                    tasa: tasaActual,
+            if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
+            if (!data[tipo][ultimaUnidad][ultimaVersion]) {
+                data[tipo][ultimaUnidad][ultimaVersion] = {
+                    precio: ultimoPrecio,
+                    tasa: ultimaTasa,
                     enganchesMap: {}
                 };
-            } else {
-                // Actualizar por si acaso con el valor vigente
-                if (precioActual !== "\$0.00") data[tipo][unidadActual][versionActual].precio = precioActual;
-                if (tasaActual) data[tipo][unidadActual][versionActual].tasa = tasaActual;
             }
 
-            const engMap = data[tipo][unidadActual][versionActual].enganchesMap;
-            if (!engMap[engancheActual]) {
-                engMap[engancheActual] = {};
+            // Refrescar con los valores actuales válidos
+            if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
+                data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
+            }
+            if (ultimaTasa) {
+                data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
             }
 
-            const plazoNum = pVal.replace(/[^0-9]/g, '');
+            const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
+            if (!engMap[ultimoEnganche]) {
+                engMap[ultimoEnganche] = {};
+            }
+
+            const plazoNum = plazoVal.replace(/[^0-9]/g, '');
             if (plazoNum) {
-                engMap[engancheActual][plazoNum] = mVal;
+                engMap[ultimoEnganche][plazoNum] = mensualidadVal;
             }
         });
 
