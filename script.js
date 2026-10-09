@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0m35pW4q8hTL_fzHHxZcEpTif783qewXBSSsOUKKzBuHXOoBsdco_KOqP3PPPEWl8CD8yE5E01tsf/pub?gid=679410401&single=true&output=csv';
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0m35pW4q8hTL_fzHHxZcEpTif783qewXBSSsOUKKzBuHXOoBsdco_KOqP3PPPEWl8CD8yE5E01tsf/pub?gid=679410401&single=true&output=csv&t=' + new Date().getTime();
 
     const selectTipo = document.getElementById('select-tipo');
     const selectUnidad = document.getElementById('select-unidad');
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let ultimoPrecio = "\$0.00";
         let ultimoEnganche = "";
 
-        rows.forEach((cols) => {
+        rows.forEach((cols, index) => {
             if (!cols || cols.length < 8) return;
 
             const unidadVal = (cols[2] || "").trim();
@@ -93,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // Refrescar con los valores actuales válidos
             if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
                 data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
             }
@@ -112,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        console.log("Estructura final procesada:", data);
         vehiculosData = data;
         llenarTipos();
     };
