@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tiposDisponibles = Object.keys(vehiculosData).filter(t => Object.keys(vehiculosData[t]).length > 0);
 
         if (tiposDisponibles.length === 0) {
-            selectTipo.innerHTML = '<option value="">No hay datos disponibles</option>';
+            selectTipo.innerHTML = '<option value="">Sin datos detectados</option>';
             return;
         }
 
@@ -60,16 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
         selectUnidad.innerHTML = '';
         const unidades = vehiculosData[tipoSel] ? Object.keys(vehiculosData[tipoSel]) : [];
 
-        if (unidades.length === 0) {
-            selectUnidad.innerHTML = '<option value="">Sin unidades</option>';
-        } else {
-            unidades.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u;
-                opt.textContent = u;
-                selectUnidad.appendChild(opt);
-            });
-        }
+        unidades.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u;
+            opt.textContent = u;
+            selectUnidad.appendChild(opt);
+        });
         llenarVersiones();
     };
 
@@ -81,16 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const versiones = vehiculosData[tipoSel]?.[unidadSel] ? Object.keys(vehiculosData[tipoSel][unidadSel]) : [];
 
-        if (versiones.length === 0) {
-            selectVersion.innerHTML = '<option value="">Sin versiones</option>';
-        } else {
-            versiones.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = v;
-                selectVersion.appendChild(opt);
-            });
-        }
+        versiones.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            selectVersion.appendChild(opt);
+        });
         llenarEnganches();
     };
 
@@ -104,16 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const info = vehiculosData[tipoSel]?.[unidadSel]?.[versionSel];
         const enganches = (info && info.enganchesMap) ? Object.keys(info.enganchesMap) : [];
 
-        if (enganches.length === 0) {
-            selectEnganche.innerHTML = '<option value="">Sin enganches</option>';
-        } else {
-            enganches.forEach(e => {
-                const opt = document.createElement('option');
-                opt.value = e;
-                opt.textContent = e;
-                selectEnganche.appendChild(opt);
-            });
-        }
+        enganches.forEach(e => {
+            const opt = document.createElement('option');
+            opt.value = e;
+            opt.textContent = e;
+            selectEnganche.appendChild(opt);
+        });
         actualizarPantalla();
     };
 
@@ -126,12 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const enganche = selectEnganche.value;
 
         const info = vehiculosData[tipo]?.[unidad]?.[version];
-        if (!info) {
-            if (precioListaEl) precioListaEl.innerText = "\$0.00";
-            if (tasaAnualEl) tasaAnualEl.innerText = "12.99%";
-            if (mesVals) mesVals.forEach(r => r.innerText = "\$0.00");
-            return;
-        }
+        if (!info) return;
 
         if (precioListaEl) precioListaEl.innerText = info.precio || "\$0.00";
         if (tasaAnualEl) tasaAnualEl.innerText = info.tasa || "12.99%";
@@ -160,75 +143,79 @@ document.addEventListener('DOMContentLoaded', () => {
             let ultimaUnidad = "";
             let ultimaVersion = "";
             let ultimaTasa = "12.99%";
-            let ultimoPrecio = "\$0.00";
+            let ultimoPrecio = "\$750,000.00";
             let ultimoEnganche = "";
 
             rows.forEach((cols) => {
-                if (!cols || cols.length < 8) return;
+                if (!cols || cols.length === 0) return;
 
-                const unidadVal = (cols[2] || "").trim();    // Columna C: Unidad
-                const versionVal = (cols[3] || "").trim();   // Columna D: Versión
-                const tasaVal = (cols[4] || "").trim();      // Columna E: Tasa
-                const engancheVal = (cols[5] || "").trim();  // Columna F: Enganche
-                const plazoVal = (cols[6] || "").trim();     // Columna G: Plazo
-                const mensualidadVal = (cols[7] || "").trim(); // Columna H: Mensualidad
-                const precioVal = (cols[8] || "").trim();    // Columna I: Precio
+                // Buscamos dinámicamente en los valores de la fila
+                cols.forEach(cell => {
+                    const val = (cell || "").trim();
+                    if (!val) return;
 
-                if (unidadVal && !unidadVal.toUpperCase().includes("COTIZACION") && !unidadVal.toUpperCase().includes("COTIZACIÓN") && !unidadVal.toUpperCase().includes("COTIZACIONES")) {
-                    ultimaUnidad = unidadVal.toUpperCase();
-                }
-                
-                if (versionVal && !versionVal.toUpperCase().includes("VERSION")) {
-                    ultimaVersion = versionVal.toUpperCase();
+                    const upper = val.toUpperCase();
+                    // Detectar vehículos comunes
+                    if (upper.includes("K3") || upper.includes("SELTOS") || upper.includes("SPORTAGE") || upper.includes("SORENTO") || upper.includes("NIRO") || upper.includes("RIO") || upper.includes("FORTE") || upper.includes("SONET")) {
+                        if (!upper.includes("COTIZACION") && !upper.includes("COTIZACIÓN")) {
+                            ultimaUnidad = upper;
+                        }
+                    }
+                    // Detectar versiones comunes
+                    if (upper === "L TM" || upper === "LX TM" || upper === "EX" || upper === "GT" || upper.includes("TM") || upper.includes("TA")) {
+                        if (upper.length < 15) ultimaVersion = upper;
+                    }
+                    // Detectar tasa
+                    if (val.includes("%")) {
+                        ultimaTasa = val;
+                    }
+                    // Detectar montos en dinero
+                    if (val.includes("\$") && val.length > 5) {
+                        if (val.includes(",")) {
+                            // Si es precio alto o enganche
+                            if (val.replace(/[^0-9]/g, '') > 300000) {
+                                ultimoPrecio = val;
+                            } else {
+                                ultimoEnganche = val;
+                            }
+                        }
+                    }
+                });
+
+                // Si detectamos plazo y mensualidad por posición estándar de respaldo
+                let plazoStr = "";
+                let mensStr = "";
+                for (let i = 0; i < cols.length; i++) {
+                    const c = (cols[i] || "").trim();
+                    if (c === "36" || c === "48" || c === "60" || c === "72") {
+                        plazoStr = c;
+                        mensStr = (cols[i+1] || "").trim();
+                    }
                 }
 
-                if (tasaVal && tasaVal.includes("%")) {
-                    ultimaTasa = tasaVal;
-                }
-                if (engancheVal && engancheVal.includes("\$")) {
-                    ultimoEnganche = engancheVal;
-                }
-                if (precioVal && precioVal.includes("\$") && precioVal !== "\$0.00") {
-                    ultimoPrecio = precioVal;
-                }
-
-                if (!ultimaUnidad || !ultimaVersion || !ultimoEnganche || !plazoVal || !mensualidadVal) return;
+                if (!ultimaUnidad || !ultimaVersion || !ultimoEnganche || !plazoStr || !mensStr) return;
 
                 const tipo = clasificarVehiculo(ultimaUnidad);
-
                 if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
                 if (!data[tipo][ultimaUnidad][ultimaVersion]) {
                     data[tipo][ultimaUnidad][ultimaVersion] = {
-                        precio: ultimoPrecio !== "\$0.00" ? ultimoPrecio : "\$750,000.00",
+                        precio: ultimoPrecio,
                         tasa: ultimaTasa,
                         enganchesMap: {}
                     };
                 }
 
-                if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
-                    data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
-                }
-                if (ultimaTasa) {
-                    data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
-                }
-
                 const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
-                if (!engMap[ultimoEnganche]) {
-                    engMap[ultimoEnganche] = {};
-                }
+                if (!engMap[ultimoEnganche]) engMap[ultimoEnganche] = {};
 
-                const plazoNum = plazoVal.replace(/[^0-9]/g, '');
-                if (plazoNum) {
-                    engMap[ultimoEnganche][plazoNum] = mensualidadVal;
-                }
+                engMap[ultimoEnganche][plazoStr] = mensStr;
             });
 
             vehiculosData = data;
             llenarTipos();
         },
         error: (err) => {
-            console.error("Error al descargar el CSV:", err);
-            if (selectTipo) selectTipo.innerHTML = '<option value="">Error de carga</option>';
+            console.error("Error CSV:", err);
         }
     });
 
