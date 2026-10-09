@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0m35pW4q8hTL_fzHHxZcEpTif783qewXBSSsOUKKzBuHXOoBsdco_KOqP3PPPEWl8CD8yE5E01tsf/pub?gid=679410401&single=true&output=csv&t=' + new Date().getTime();
 
     const selectTipo = document.getElementById('select-tipo');
@@ -25,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let vehiculosData = {};
 
     const clasificarVehiculo = (unidad) => {
-        const u = unidad.toUpperCase();
+        const u = (unidad || "").toUpperCase();
         if (u.includes("NIRO") || u.includes("EV3") || u.includes("EV6") || u.includes("EV9") || u.includes("HEV") || u.includes("HÍBRIDO") || u.includes("ELECTRICO") || u.includes("PHEV")) {
             return "HÍBRIDOS Y ELÉCTRICOS";
         }
@@ -35,94 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return "AUTOMÓVIL";
     };
 
-    const procesarCSV = (results) => {
-        const rows = results.data;
-        let data = {
-            "AUTOMÓVIL": {},
-            "SUV": {},
-            "HÍBRIDOS Y ELÉCTRICOS": {}
-        };
-
-        let ultimaUnidad = "";
-        let ultimaVersion = "";
-        let ultimaTasa = "12.99%";
-        let ultimoPrecio = "\$0.00";
-        let ultimoEnganche = "";
-
-        rows.forEach((cols) => {
-            if (!cols || cols.length < 8) return;
-
-            const unidadVal = (cols[2] || "").trim();
-            const versionVal = (cols[3] || "").trim();
-            const tasaVal = (cols[4] || "").trim();
-            const engancheVal = (cols[5] || "").trim();
-            const plazoVal = (cols[6] || "").trim();
-            const mensualidadVal = (cols[7] || "").trim();
-            const precioVal = (cols[8] || "").trim();
-
-            const unidadUpper = (unidadVal || "").toUpperCase();
-            if (unidadUpper && !unidadUpper.includes("COTIZACION") && !unidadUpper.includes("COTIZACIÓN") && !unidadUpper.includes("UNIDAD")) {
-                ultimaUnidad = unidadUpper;
-            }
-            
-            const versionUpper = (versionVal || "").toUpperCase();
-            if (versionUpper && !versionUpper.includes("VERSION")) {
-                ultimaVersion = versionUpper;
-            }
-
-            if (tasaVal && !tasaVal.toUpperCase().includes("TASA") && tasaVal.includes("%")) {
-                ultimaTasa = tasaVal;
-            }
-            if (engancheVal && !engancheVal.toUpperCase().includes("ENGANCHE")) {
-                ultimoEnganche = engancheVal;
-            }
-            if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
-                ultimoPrecio = precioVal;
-            }
-
-            if (!ultimaUnidad || !ultimaVersion || !ultimoEnganche || !plazoVal || !mensualidadVal) return;
-
-            const tipo = clasificarVehiculo(ultimaUnidad);
-
-            if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
-            if (!data[tipo][ultimaUnidad][ultimaVersion]) {
-                data[tipo][ultimaUnidad][ultimaVersion] = {
-                    precio: ultimoPrecio,
-                    tasa: ultimaTasa,
-                    enganchesMap: {}
-                };
-            }
-
-            if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
-                data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
-            }
-            if (ultimaTasa) {
-                data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
-            }
-
-            const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
-            if (!engMap[ultimoEnganche]) {
-                engMap[ultimoEnganche] = {};
-            }
-
-            const plazoNum = plazoVal.replace(/[^0-9]/g, '');
-            if (plazoNum) {
-                engMap[ultimoEnganche][plazoNum] = mensualidadVal;
-            }
-        });
-
-        vehiculosData = data;
-        llenarTipos();
-    };
-
     const llenarTipos = () => {
         if (!selectTipo) return;
         selectTipo.innerHTML = '';
-        
         const tiposDisponibles = Object.keys(vehiculosData).filter(t => Object.keys(vehiculosData[t]).length > 0);
 
         if (tiposDisponibles.length === 0) {
-            selectTipo.innerHTML = '<option value="">No hay tipos disponibles</option>';
+            selectTipo.innerHTML = '<option value="">No hay datos</option>';
             return;
         }
 
@@ -140,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectUnidad) return;
         const tipoSel = selectTipo.value;
         selectUnidad.innerHTML = '';
-        
         const unidades = vehiculosData[tipoSel] ? Object.keys(vehiculosData[tipoSel]) : [];
 
         if (unidades.length === 0) {
@@ -228,6 +145,94 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Iniciar lectura del CSV inmediatamente
+    Papa.parse(SHEET_CSV_URL, {
+        download: true,
+        header: false,
+        skipEmptyLines: true,
+        complete: (results) => {
+            const rows = results.data;
+            let data = {
+                "AUTOMÓVIL": {},
+                "SUV": {},
+                "HÍBRIDOS Y ELÉCTRICOS": {}
+            };
+
+            let ultimaUnidad = "";
+            let ultimaVersion = "";
+            let ultimaTasa = "12.99%";
+            let ultimoPrecio = "\$0.00";
+            let ultimoEnganche = "";
+
+            rows.forEach((cols, index) => {
+                if (index === 0 || !cols || cols.length < 8) return;
+
+                const unidadVal = (cols[2] || "").trim();
+                const versionVal = (cols[3] || "").trim();
+                const tasaVal = (cols[4] || "").trim();
+                const engancheVal = (cols[5] || "").trim();
+                const plazoVal = (cols[6] || "").trim();
+                const mensualidadVal = (cols[7] || "").trim();
+                const precioVal = (cols[8] || "").trim();
+
+                if (unidadVal && !unidadVal.toUpperCase().includes("COTIZACION") && !unidadVal.toUpperCase().includes("COTIZACIÓN") && !unidadVal.toUpperCase().includes("UNIDAD")) {
+                    ultimaUnidad = unidadVal.toUpperCase();
+                }
+                
+                if (versionVal && !versionVal.toUpperCase().includes("VERSION")) {
+                    ultimaVersion = versionVal.toUpperCase();
+                }
+
+                if (tasaVal && tasaVal.includes("%")) {
+                    ultimaTasa = tasaVal;
+                }
+                if (engancheVal && (engancheVal.includes("\$") || !isNaN(engancheVal.replace(/[^0-9.]/g, '')))) {
+                    ultimoEnganche = engancheVal;
+                }
+                if (precioVal && precioVal.includes("\$") && precioVal !== "\$0.00") {
+                    ultimoPrecio = precioVal;
+                }
+
+                if (!ultimaUnidad || !ultimaVersion || !ultimoEnganche || !plazoVal || !mensualidadVal) return;
+
+                const tipo = clasificarVehiculo(ultimaUnidad);
+
+                if (!data[tipo][ultimaUnidad]) data[tipo][ultimaUnidad] = {};
+                if (!data[tipo][ultimaUnidad][ultimaVersion]) {
+                    data[tipo][ultimaUnidad][ultimaVersion] = {
+                        precio: ultimoPrecio !== "\$0.00" ? ultimoPrecio : "\$700,000.00",
+                        tasa: ultimaTasa,
+                        enganchesMap: {}
+                    };
+                }
+
+                if (ultimoPrecio && ultimoPrecio !== "\$0.00") {
+                    data[tipo][ultimaUnidad][ultimaVersion].precio = ultimoPrecio;
+                }
+                if (ultimaTasa) {
+                    data[tipo][ultimaUnidad][ultimaVersion].tasa = ultimaTasa;
+                }
+
+                const engMap = data[tipo][ultimaUnidad][ultimaVersion].enganchesMap;
+                if (!engMap[ultimoEnganche]) {
+                    engMap[ultimoEnganche] = {};
+                }
+
+                const plazoNum = plazoVal.replace(/[^0-9]/g, '');
+                if (plazoNum) {
+                    engMap[ultimoEnganche][plazoNum] = mensualidadVal;
+                }
+            });
+
+            vehiculosData = data;
+            llenarTipos();
+        },
+        error: (err) => {
+            console.error("Error al descargar el CSV:", err);
+            if (selectTipo) selectTipo.innerHTML = '<option value="">Error al cargar datos</option>';
+        }
+    });
+
     if (selectTipo) selectTipo.addEventListener('change', llenarUnidades);
     if (selectUnidad) selectUnidad.addEventListener('change', llenarVersiones);
     if (selectVersion) selectVersion.addEventListener('change', llenarEnganches);
@@ -260,7 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const mes48 = mesVals[2] ? mesVals[2].textContent : '-';
 
             const mensaje = `Hola, mi nombre es *${nombre || 'Cliente'}* (Tel: ${telefono || 'No proporcionado'}). Me interesa la siguiente cotización:\n\n🚗 *Vehículo:* ${unidad} - ${version}\n💰 *Precio:* ${precio}\n📥 *Enganche:* ${enganche}\n📅 *Mensualidad (48 meses):* ${mes48}`;
-            
             window.open(`https://wa.me/528448067192?text=${encodeURIComponent(mensaje)}`, '_blank');
         });
     }
@@ -278,16 +282,4 @@ document.addEventListener('DOMContentLoaded', () => {
             html2pdf().from(elemento).set(opciones).save();
         });
     }
-
-    Papa.parse(SHEET_CSV_URL, {
-        download: true,
-        header: false,
-        skipEmptyLines: true,
-        complete: (results) => {
-            procesarCSV(results);
-        },
-        error: (err) => {
-            console.error("Error al descargar el CSV:", err);
-        }
-    });
 });
