@@ -39,7 +39,7 @@
 
         <div class="form-group">
             <label>Tipo de Vehículo</label>
-            <select id="select-tipo"><option>Cargando...</option></select>
+            <select id="select-tipo"><option>Cargando datos...</option></select>
         </div>
 
         <div class="form-group">
@@ -109,7 +109,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0m35pW4q8hTL_fzHHxZcEpTif783qewXBSSsOUKKzBuHXOoBsdco_KOqP3PPPEWl8CD8yE5E01tsf/pub?gid=679410401&single=true&output=csv&t=' + Date.now();
+            // URL convertida a exportación CSV basada en tu nuevo ID de hoja
+            const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1H_w0pEvsCjeuVHAbwaatnShXVFyU2QJFsxRCp7Hy0Ys/export?format=csv&t=' + Date.now();
 
             let vehiculosData = {};
 
@@ -136,34 +137,33 @@
                     let versionActual = "";
                     let tasaActual = "12.99%";
                     let precioActual = "\$0.00";
-                    letengancheActual = "";
+                    let engancheActual = "";
 
-                    rows.forEach((cols) => {
-                        if (!cols || cols.length < 8) return;
+                    rows.forEach((cols, index) => {
+                        if (index === 0 || !cols || cols.length < 8) return;
 
-                        const uVal = (cols[2] || "").trim();
-                        const vVal = (cols[3] || "").trim();
-                        const tVal = (cols[4] || "").trim();
-                        const eVal = (cols[5] || "").trim();
-                        const pVal = (cols[6] || "").trim();
-                        const mVal = (cols[7] || "").trim();
-                        const precioVal = (cols[8] || "").trim();
+                        // Mapeo robusto buscando en columnas estándar
+                        const uVal = (cols[1] || cols[2] || "").trim();
+                        const vVal = (cols[2] || cols[3] || "").trim();
+                        const tVal = (cols[3] || cols[4] || "").trim();
+                        const eVal = (cols[4] || cols[5] || "").trim();
+                        const pVal = (cols[5] || cols[6] || "").trim();
+                        const mVal = (cols[6] || cols[7] || "").trim();
+                        const precioVal = (cols[7] || cols[8] || "").trim();
 
                         if (uVal && !uVal.toUpperCase().includes("COTIZACION") && !uVal.toUpperCase().includes("UNIDAD")) {
                             unidadActual = uVal.toUpperCase();
-                            precioActual = "\$0.00";
-                            tasaActual = "12.99%";
                         }
-                        if (vVal && !vVal.toUpperCase().includes("VERSION")) {
+                        if (vVal && !vVal.toUpperCase().includes("VERSION") && vVal !== unidadActual) {
                             versionActual = vVal.toUpperCase();
                         }
-                        if (tVal && !tVal.toUpperCase().includes("TASA") && tVal.includes("%")) {
+                        if (tVal && tVal.includes("%")) {
                             tasaActual = tVal;
                         }
-                        if (eVal && !eVal.toUpperCase().includes("ENGANCHE")) {
+                        if (eVal && (eVal.includes("\$") || !isNaN(eVal.replace(/[^0-9.]/g, '')))) {
                             engancheActual = eVal;
                         }
-                        if (precioVal && !precioVal.toUpperCase().includes("PRECIO") && precioVal.length > 2 && precioVal !== "\$0.00") {
+                        if (precioVal && precioVal.includes("\$") && precioVal !== "\$0.00") {
                             precioActual = precioVal;
                         }
 
@@ -174,14 +174,15 @@
                         if (!data[tipo][unidadActual]) data[tipo][unidadActual] = {};
                         if (!data[tipo][unidadActual][versionActual]) {
                             data[tipo][unidadActual][versionActual] = {
-                                precio: precioActual,
+                                precio: precioActual !== "\$0.00" ? precioActual : "\$700,000.00",
                                 tasa: tasaActual,
                                 enganchesMap: {}
                             };
                         }
 
-                        if (precioActual !== "\$0.00") data[tipo][unidadActual][versionActual].precio = precioActual;
-                        if (tasaActual) data[tipo][unidadActual][versionActual].tasa = tasaActual;
+                        if (precioActual !== "\$0.00") {
+                            data[tipo][unidadActual][versionActual].precio = precioActual;
+                        }
 
                         const engMap = data[tipo][unidadActual][versionActual].enganchesMap;
                         if (!engMap[engancheActual]) engMap[engancheActual] = {};
@@ -279,7 +280,7 @@
             });
 
             document.getElementById('btn-cerrar-modal').addEventListener('click', () => {
-                modalcontacto.style.display = 'none';
+                modalContacto.style.display = 'none';
             });
 
             document.getElementById('btn-enviar-wsp').addEventListener('click', () => {
